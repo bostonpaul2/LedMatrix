@@ -1,8 +1,4 @@
 /**
- * Created by paolosilini on 30/11/15.
- */
-
-/**
  * Return a variable containing everything that is marked with this
  */
 LedMatrix = function (elemid, options) {
@@ -55,17 +51,18 @@ LedMatrix = function (elemid, options) {
 
             // save the selected window in a temporary variable
             var selected = self.displayArea.select(".selectedWindow");
-            var parent = $(".selectedWindow").parent().find("g.char");
+            var parent = $(".selectedWindow").parent();
+            var chars = parent.find("g.char");
 
             // remove the selected window from the displayArea
             self.removeSelectedWindow();
 
             // copy the position of the selected window
             var pos = {
-                x: parseFloat(selected.attr("x")),
-                y: parseFloat(selected.attr("y")),
-                width: parseFloat(selected.attr("width")) + parseFloat(selected.attr("x")),
-                height: parseFloat(selected.attr("height")) + parseFloat(selected.attr("y"))
+                x: parseFloat(parent.attr("x")),
+                y: parseFloat(parent.attr("y")),
+                width: parseFloat(selected.attr("width")) + parseFloat(parent.attr("x")),
+                height: parseFloat(selected.attr("height")) + parseFloat(parent.attr("y"))
             };
 
             // create a new brush inside the displayArea at the saved position
@@ -79,23 +76,6 @@ LedMatrix = function (elemid, options) {
             var gBrush = self.displayArea.append("g")
                 .attr("class", "editingWindow")
                 .call(brush);
-
-            gBrush.insert("g", ".background")
-                .attr("transform", function () {
-                    return "translate(" + 0 + "," + 0 + ")";
-                })
-                .attr("class", "message");
-
-            $(".message").append(parent);
-
-            gBrush.select(".background")
-                .style("cursor", "default")
-                .on("mousedown.brush", function () {
-                    d3.event.stopImmediatePropagation();
-                })
-                .on("touchstart.brush", function () {
-                    d3.event.stopImmediatePropagation();
-                });
 
             // copy the data contained in the old window
             var data = [selected.datum()];
@@ -114,6 +94,22 @@ LedMatrix = function (elemid, options) {
                 .data(data)
                 .enter()
                 .append("rect");
+
+            gBrush.insert("g", ".background")
+                .attr("transform", "translate(" + parent.attr("x") + "," + parent.attr("y") + ")")
+                .attr("class", "message");
+
+            $(".message").append(chars);
+
+            gBrush.select(".background")
+                .style("cursor", "default")
+                .on("mousedown.brush", function () {
+                    d3.event.stopImmediatePropagation();
+                })
+                .on("touchstart.brush", function () {
+                    d3.event.stopImmediatePropagation();
+                });
+
 
             // function that snap to grid the drawn area
             function brushed() {
@@ -197,19 +193,21 @@ LedMatrix = function (elemid, options) {
                 data[0] = temp.datum();
             }
 
-            var g = self.displayArea
-                .append("g")
-                .attr('transform', 'translate(' + 0 + ',' + 0 + ')')
+            var svg = self.displayArea.append("svg")
+                .attr("x", temp.attr("x"))
+                .attr("y", temp.attr("y"))
+                .attr("width", temp.attr("width"))
+                .attr("height", temp.attr("height"))
                 .attr("class", "windowGroup");
 
             // create a new window with data in the drawn position
-            var w = g.selectAll(".windowGroup")
+            var w = svg.selectAll(".windowGroup")
                 .data(data)
                 .enter()
                 .append("rect")
                 .attr("class", "window")
-                .attr("x", temp.attr("x"))
-                .attr("y", temp.attr("y"))
+                .attr("x", 0)
+                .attr("y", 0)
                 .attr("width", temp.attr("width"))
                 .attr("height", temp.attr("height"))
                 .on("click", manageSelection)
@@ -354,8 +352,10 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".textEdit").empty()) {
             var editable = d3.select(".textEdit");
             var data = editable.datum();
-            data.cursorCurrXPos = parseFloat(editable.attr("x"));
-            data.cursorCurrYPos = parseFloat(editable.attr("y"));
+            var parent = $(".textEdit").parent();
+
+            data.cursorCurrXPos = parseFloat(parent.attr("x"));
+            data.cursorCurrYPos = parseFloat(parent.attr("y"));
 
             var rowIndex = 0;
             var maxH;
@@ -364,8 +364,8 @@ LedMatrix = function (elemid, options) {
                 if (data.message[i] != '\n') {
                     // add char width at cursor x pos and calculate y pos
                     data.cursorCurrXPos += data.font[i].getWidth(data.message[i]) + self.options.totPixelSize;
-                    if (data.cursorCurrXPos > parseFloat(editable.attr("x")) + parseFloat(editable.attr("width")) + self.options.totPixelSize / 2) {
-                        data.cursorCurrXPos = parseFloat(editable.attr("x")) + data.font[i].getWidth(data.message[i]) + self.options.totPixelSize;
+                    if (data.cursorCurrXPos > parseFloat(parent.attr("x")) + parseFloat(parent.attr("width")) + self.options.totPixelSize / 2) {
+                        data.cursorCurrXPos = parseFloat(parent.attr("x")) + data.font[i].getWidth(data.message[i]) + self.options.totPixelSize;
                         maxH = 0;
                         for (j = parseInt(rowIndex); j < i; j++) {
                             if (maxH < data.font[j].getHeight()) {
@@ -376,7 +376,7 @@ LedMatrix = function (elemid, options) {
                         data.cursorCurrYPos += maxH;
                     }
                 } else {
-                    data.cursorCurrXPos = parseFloat(editable.attr("x"));
+                    data.cursorCurrXPos = parseFloat(parent.attr("x"));
                     maxH = 0;
                     for (j = parseInt(rowIndex); j < i; j++) {
                         if (maxH < data.font[j].getHeight()) {
@@ -393,8 +393,9 @@ LedMatrix = function (elemid, options) {
             var h = data.cursorCurrYPos + fontH - self.options.offsetSize;
 
             if (h <= self.size.height) {
-                if (h > parseFloat(editable.attr("height")) + parseFloat(editable.attr("y"))) {
-                    editable.attr("height", h + self.options.offsetSize - parseFloat(editable.attr("y")));
+                if (h > parseFloat(parent.attr("height")) + parseFloat(parent.attr("y"))) {
+                    editable.attr("height", h  - parseFloat(parent.attr("y")));
+                    parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
                 $('.displayArea').append(Line(data.cursorCurrXPos, data.cursorCurrYPos, data.cursorCurrXPos, h, self.options.offsetSize * 2, "cursor"));
@@ -415,16 +416,19 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".textEdit").empty()) {
             var editable = d3.select(".textEdit");
             var data = editable.datum();
-            data.cursorCurrXPos = parseFloat(editable.attr("x")) + parseFloat(editable.attr("width"));
-            data.cursorCurrYPos = parseFloat(editable.attr("y"));
+            var parent = $(".textEdit").parent();
+
+            data.cursorCurrXPos = parseFloat(parent.attr("x")) + parseFloat(parent.attr("width"));
+            data.cursorCurrYPos = parseFloat(parent.attr("y"));
 
             // create a cursor with the height of the selected font
             var fontH = self.selectedFont.getHeight();
             var h = data.cursorCurrYPos + fontH - self.options.offsetSize;
 
             if (h <= self.size.height) {
-                if (h > parseFloat(editable.attr("height")) + parseFloat(editable.attr("y"))) {
-                    editable.attr("height", h + self.options.offsetSize - parseFloat(editable.attr("y")));
+                if (h > parseFloat(parent.attr("height")) + parseFloat(parent.attr("y"))) {
+                    editable.attr("height", h  - parseFloat(parent.attr("y")));
+                    parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
                 $('.displayArea').append(Line(data.cursorCurrXPos + self.options.offsetSize, data.cursorCurrYPos, data.cursorCurrXPos + self.options.offsetSize, h, self.options.offsetSize * 2, "cursor"));

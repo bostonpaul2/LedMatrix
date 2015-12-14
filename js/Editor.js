@@ -1,7 +1,3 @@
-/**
- * Created by paolosilini on 03/12/15.
- */
-
 function editor(matrix) {
     var mousetrap = new Mousetrap();
 
@@ -491,6 +487,7 @@ function editor(matrix) {
 
         // get the paged text area
         var edit = d3.select(".textEdit");
+        var parent = $(".textEdit").parent();
 
         // check if is empty
         if (edit.empty()) {
@@ -502,8 +499,8 @@ function editor(matrix) {
         // if is a paged message
         if (edit.classed("page")) {
             //if is not empty start
-            var parent = $(".textEdit").parent().find("g.char");
-            var currentX = data.cursorCurrXPos - parseFloat(edit.attr("x"));
+            var chars = parent.find("g.char");
+            var currentX = data.cursorCurrXPos - parseFloat(parent.attr("x"));
             var i;
             var j;
             var rowIndex;
@@ -552,7 +549,7 @@ function editor(matrix) {
 
                         // insert all the rows in the array
                         for (i = 0; i < data.message.length; i++) {
-                            p = $(parent[i]);
+                            p = $(chars[i]);
                             charY = parseFloat(p.attr("dy"));
 
                             if (prevY != charY) {
@@ -565,7 +562,7 @@ function editor(matrix) {
 
                         // search what is the involved row
                         for (i in row) {
-                            if (data.cursorCurrYPos - parseFloat(edit.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
+                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
                                 rowIndex = i;
                             }
                         }
@@ -612,7 +609,7 @@ function editor(matrix) {
 
                         // insert all the rows in the array
                         for (i = 0; i < data.message.length; i++) {
-                            p = $(parent[i]);
+                            p = $(chars[i]);
                             charY = parseFloat(p.attr("dy"));
 
                             if (prevY != charY) {
@@ -625,7 +622,7 @@ function editor(matrix) {
 
                         // search what is the involved row
                         for (i in row) {
-                            if (data.cursorCurrYPos - parseFloat(edit.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
+                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
                                 rowIndex = i;
                             }
                         }

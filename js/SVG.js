@@ -1,6 +1,3 @@
-/**
- * Created by paolosilini on 04/12/15.
- */
 var pixelSize;
 var pixelOffset;
 var pixelSizeTot;
@@ -25,6 +22,7 @@ Line = function (x1, y1, x2, y2, strokeWidth, klass) {
 
 writePageText = function (data, location) {
     var area = location.find(".textEdit");
+    var parent = area.parent();
     var x = parseFloat(area.attr("x"));
     var y = parseFloat(area.attr("y"));
     var w = parseFloat(area.attr("width"));
@@ -125,6 +123,7 @@ writePageText = function (data, location) {
         if (!(yPos > size.height)) {
             // if is possible enlarge
             area.attr("height", yPos - y - pixelOffset);
+            parent.attr("height", yPos - y - pixelOffset);
         } else {
             // if is not possible enlarge height flag to cancel the inserted char
             cancel = true;
@@ -150,12 +149,12 @@ writeScrollText = function (data, location) {
 
     // save the used glyphs  in the font manager for time saving
     matrix.fontManager.releaseGlyphs(
-        $(".textEdit").parent().find("g.char"));
+        location.parent().find("g.char"));
 
     // from the index to the start
     for (var i = data.cursorIndex - 1; i >= 0; i--) {
         // if the occupation is not outside the windows width
-        if (xPos - data.font[i].getWidth(data.message[i]) - pixelSizeTot >= x) {
+        if (xPos - data.font[i].getWidth(data.message[i]) + 100 > x) {
             // decrement x pos of te glyph width
             xPos -= data.font[i].getWidth(data.message[i]);
 
