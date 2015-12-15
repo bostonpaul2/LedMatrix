@@ -148,15 +148,14 @@ writeScrollText = function (data, location) {
     var xPos = x + w;
 
     // save the used glyphs  in the font manager for time saving
-    matrix.fontManager.releaseGlyphs(
-        location.parent().find("g.char"));
+    matrix.fontManager.releaseGlyphs(location.find("g.char"));
 
     // from the index to the start
     for (var i = data.cursorIndex - 1; i >= 0; i--) {
         // if the occupation is not outside the windows width
-        if (xPos - data.font[i].getWidth(data.message[i]) + 100 > x) {
-            // decrement x pos of te glyph width
-            xPos -= data.font[i].getWidth(data.message[i]);
+        if (xPos - data.font[i].getWidth(data.message[i]) - pixelOffset + 100 > x) {
+            // decrement x pos of glyph width
+            xPos -= data.font[i].getWidth(data.message[i]) - pixelOffset;
 
             // insert the glyph
             var g = data.font[i].getGlyph(data.message[i])
@@ -169,10 +168,65 @@ writeScrollText = function (data, location) {
             $(g).insertBefore(".textEdit");
 
             // decrement x pos of te glyph width
-            xPos -= pixelSizeTot;
+            xPos -= pixelSizeTot + pixelOffset;
         } else {
             i = 0;
         }
+    }
+};
+
+writeAllScrollText = function (data, location) {
+    var area = location.find(".textEdit");
+    var parent = area.parent();
+    var x = parseFloat(area.attr("x"));
+    var y = parseFloat(area.attr("y"));
+    var w = parseFloat(area.attr("width"));
+    var h = parseFloat(area.attr("height"));
+    var xPos = x + w;
+
+    // save the used glyphs  in the font manager for time saving
+    matrix.fontManager.releaseGlyphs(location.find("g.char"));
+
+    // from the index to the start
+    for (var i = data.message.length - 1; i >= 0; i--) {
+        // decrement x pos of glyph width
+        xPos -= data.font[i].getWidth(data.message[i]) - pixelOffset;
+
+        // insert the glyph
+        var g = data.font[i].getGlyph(data.message[i])
+            .attr('transform', 'translate(' + xPos + ',' + y + ')')
+            .attr("dx", xPos - x)
+            .attr("dy", 0)
+            .attr("index", i);
+
+        location.append(g);
+        $(g).insertBefore(".textEdit");
+
+        // calculate the max height of the previous line chars
+        var maxH = 0;
+        for (var j = 0; j < data.message.length; j++) {
+            if (maxH < data.font[j].getHeight()) {
+                maxH = data.font[j].getHeight();
+            }
+        }
+
+        // adapt window height
+        if (maxH >= y + h) {
+            // check window height
+            if (!(maxH + y > size.height)) {
+                // if is possible enlarge
+                area.attr("height", maxH - y - pixelOffset);
+                parent.attr("height", maxH - y - pixelOffset);
+            } else {
+                // if is not possible enlarge height flag to cancel the inserted char
+                area.attr("y", y - maxH);
+                parent.attr("height", y - maxH);
+            }
+        }
+
+
+        // decrement x pos of te glyph width
+        xPos -= pixelSizeTot + pixelOffset;
     }
 };
 

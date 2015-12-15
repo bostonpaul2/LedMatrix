@@ -9,6 +9,10 @@ LedMatrix = function (elemid, options) {
             // remove the listener for deselection
             disableDeselectAll();
 
+            // stop preview mode
+            stopAnimation();
+
+
             // create a new brush inside the displayArea
             var brush = d3.svg.brush()
                 .x(d3.scale.identity().domain([0, self.size.width]))
@@ -48,6 +52,9 @@ LedMatrix = function (elemid, options) {
             // remove the listener for deselection
             disableDeselectAll();
             self.cursorOff();
+
+            // stop preview mode
+            stopAnimation();
 
             // save the selected window in a temporary variable
             var selected = self.displayArea.select(".selectedWindow");
@@ -229,7 +236,7 @@ LedMatrix = function (elemid, options) {
                 // if is a paged message
                 else if (data[0].type == "scroll") {
                     w.classed(data[0].type, true);
-                    writeScrollText(data[0], edit.parent());
+                    writeAllScrollText(data[0], edit.parent());
                 }
             }
 
@@ -237,6 +244,8 @@ LedMatrix = function (elemid, options) {
                 .classed('selectedWindow', true);
 
         }
+
+        startAnimation();
     };
 
     // remove the selected window
@@ -264,13 +273,18 @@ LedMatrix = function (elemid, options) {
         enableStopMessage();
         if (!self.displayArea.select(".selectedWindow").empty()) {
             // mark the selected window as textEdit
-            self.displayArea.select(".selectedWindow")
+            var w = self.displayArea.select(".selectedWindow")
                 .on("click", moveCursor)
                 .classed('textEdit', true)
                 .classed('page', true);
 
+            w.datum().type = "page";
+
             // turn on the cursor
             self.cursorPageOn();
+
+            // stop preview mode
+            stopAnimation();
 
         } else {
             alert("select a window!");
@@ -284,13 +298,18 @@ LedMatrix = function (elemid, options) {
         enableStopMessage();
         if (!self.displayArea.select(".selectedWindow").empty()) {
             // mark the selected window as textEdit
-            self.displayArea.select(".selectedWindow")
+            var w = self.displayArea.select(".selectedWindow")
                 .on("click", moveCursor)
                 .classed('textEdit', true)
                 .classed('scroll', true);
 
+            w.datum().type = "scroll";
+
             // turn on the cursor
             self.cursorScrollOn();
+
+            // stop preview mode
+            stopAnimation();
 
         } else {
             alert("select a window!");
@@ -303,8 +322,14 @@ LedMatrix = function (elemid, options) {
         enableDeselectAll();
         if (!self.displayArea.select(".textEdit").empty()) {
             // mark the textEdit window as selected
-            self.displayArea.select(".textEdit")
-                .on("click", manageSelection)
+            var edit = self.displayArea.select(".textEdit");
+
+            // if is a paged message
+            if (edit.classed("scroll")) {
+                writeAllScrollText(edit.datum(), $(".textEdit").parent());
+            }
+
+            edit.on("click", manageSelection)
                 .classed('textEdit', false)
                 .classed('selectedWindow', true);
 
@@ -312,11 +337,13 @@ LedMatrix = function (elemid, options) {
             self.cursorOff();
 
         } else {
-            alert("no window modified!");
+            alert("no modified window!");
         }
 
         // Deleting all the hidden characters:
         $('.char-hidden').remove();
+
+        startAnimation();
     };
 
     // select the font
@@ -394,7 +421,7 @@ LedMatrix = function (elemid, options) {
 
             if (h <= self.size.height) {
                 if (h > parseFloat(parent.attr("height")) + parseFloat(parent.attr("y"))) {
-                    editable.attr("height", h  - parseFloat(parent.attr("y")));
+                    editable.attr("height", h - parseFloat(parent.attr("y")));
                     parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
@@ -427,7 +454,7 @@ LedMatrix = function (elemid, options) {
 
             if (h <= self.size.height) {
                 if (h > parseFloat(parent.attr("height")) + parseFloat(parent.attr("y"))) {
-                    editable.attr("height", h  - parseFloat(parent.attr("y")));
+                    editable.attr("height", h - parseFloat(parent.attr("y")));
                     parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
@@ -456,9 +483,11 @@ LedMatrix = function (elemid, options) {
     };
 
     // Chooses the actual font depending on the cursor position.
-    this.chooseFont = function(data) {
+    this.chooseFont = function (data) {
         // Empty case:
-        if (data.font.length <= 0) { return; }
+        if (data.font.length <= 0) {
+            return;
+        }
 
         // When there is a prev char:
         if (data.cursorIndex === data.font.length ||
@@ -471,7 +500,7 @@ LedMatrix = function (elemid, options) {
     };
 
     // Refreshing the cursor state:
-    this.refreshCursor = function(data) {
+    this.refreshCursor = function (data) {
         // Select the font:
         self.chooseFont(data);
 
@@ -480,7 +509,7 @@ LedMatrix = function (elemid, options) {
         self.cursorPageOn();
     };
 
-    this.refreshScrollText = function(data, loc){
+    this.refreshScrollText = function (data, loc) {
         self.chooseFont(data);
 
         // update cursor
@@ -537,6 +566,9 @@ LedMatrix = function (elemid, options) {
     // init font
     this.fontManager = FontManager();
     this.selectFont();
+
+    // init preview stuff
+    this.previewTimer = null;
 
     // ------------- Private Tools -------------
     // mark the window as selectedWindow and unselect all the other
@@ -663,5 +695,54 @@ LedMatrix = function (elemid, options) {
             // Refreshing the font:
             self.refreshCursor(data);
         }
+    }
+
+    function startAnimation() {
+        if (self.previewTimer == null) {
+            // start preview mode
+            self.previewTimer = setInterval(playAnimation, 40);
+        }
+    }
+
+    function stopAnimation() {
+        clearInterval(self.previewTimer);
+        self.previewTimer = null;
+    }
+
+    function playAnimation() {
+        d3.selectAll(".windowGroup").each(function () {
+            var data = d3.select(this).select(".window").datum();
+
+            if (data.type == "scroll") {
+                var parent = $(this);
+                var chars = parent.find("g.char");
+                var minX = $(chars[data.message.length - 1]).attr("dx");
+                var char;
+                var newX;
+                var i;
+
+                if (data.preview == undefined || data.preview == 0) {
+                    for (i = data.message.length - 1; i >= 0; i--) {
+                        char = $(chars[i]);
+                        newX = parseFloat(char.attr("dx")) + Math.abs(minX) + parseFloat(parent.find(".window").attr("width"));
+                        char.attr("transform", "translate(" + newX + "," + parseFloat(char.attr("dy")) + ")")
+                            .attr("dx", newX);
+                    }
+                } else {
+                    for (i = data.message.length - 1; i >= 0; i--) {
+                        char = $(chars[i]);
+                        newX = parseFloat(char.attr("dx")) - pixelSizeTot;
+                        char.attr("transform", "translate(" + newX + "," + parseFloat(char.attr("dy")) + ")")
+                            .attr("dx", newX);
+                    }
+                }
+
+                if (parseFloat($(chars[0]).attr("dx")) + (parseFloat($(chars[0]).attr("width"))) < 0) {
+                    data.preview = 0;
+                } else {
+                    data.preview++;
+                }
+            }
+        })
     }
 };
