@@ -86,6 +86,7 @@ LedMatrix = function (elemid, options) {
 
             // copy the data contained in the old window
             var data = [selected.datum()];
+
             data[0].remove = false;
             // if is a paged message
             if (selected.classed("page")) {
@@ -101,6 +102,7 @@ LedMatrix = function (elemid, options) {
                 .data(data)
                 .enter()
                 .append("rect");
+
 
             gBrush.insert("g", ".background")
                 .attr("transform", "translate(" + parent.attr("x") + "," + parent.attr("y") + ")")
@@ -187,15 +189,22 @@ LedMatrix = function (elemid, options) {
             var data = [{
                 remove: false,
                 type: null,
-                message: [],
-                font: [],
-                cursorMaxXPos: 0,
-                cursorCurrXPos: 0,
-                cursorMaxYPos: 0,
-                cursorCurrYPos: 0,
-                cursorIndex: 0,
-                color: "000"
+                pages: [{
+                    remove: false,
+                    message: [],
+                    font: [],
+                    blink: [],
+                    cursorMaxXPos: 0,
+                    cursorCurrXPos: 0,
+                    cursorMaxYPos: 0,
+                    cursorCurrYPos: 0,
+                    cursorIndex: 0,
+                    color: "000"
+                }],
+                duration: 10,
+                selectedPage: 0
             }];
+
             if (temp.datum() != 0) {
                 data[0] = temp.datum();
             }
@@ -226,17 +235,17 @@ LedMatrix = function (elemid, options) {
             // add the listener for deselection
             enableDeselectAll();
 
-            if (data[0].message.length != 0) {
+            if (data[0].pages[data[0].selectedPage].message.length != 0) {
                 var edit = $(".textEdit");
                 // if is a paged message
                 if (data[0].type == "page") {
                     w.classed(data[0].type, true);
-                    writePageText(data[0], edit.parent());
+                    writePageText(data[0].pages[data[0].selectedPage], edit.parent());
                 }
                 // if is a paged message
                 else if (data[0].type == "scroll") {
                     w.classed(data[0].type, true);
-                    writeAllScrollText(data[0], edit.parent());
+                    writeAllScrollText(data[0].pages[data[0].selectedPage], edit.parent());
                 }
             }
 
@@ -323,10 +332,13 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".textEdit").empty()) {
             // mark the textEdit window as selected
             var edit = self.displayArea.select(".textEdit");
+            var data = edit.datum();
+            data = data.pages[data.selectedPage];
+
 
             // if is a paged message
             if (edit.classed("scroll")) {
-                writeAllScrollText(edit.datum(), $(".textEdit").parent());
+                writeAllScrollText(data, $(".textEdit").parent());
             }
 
             edit.on("click", manageSelection)
@@ -355,6 +367,7 @@ LedMatrix = function (elemid, options) {
         var editable = d3.select(".textEdit");
         if (!editable.empty()) {
             var data = editable.datum();
+            data = data.pages[data.selectedPage];
             if (data.cursorIndex > 0 && data.message[data.cursorIndex - 1] === '\n') {
                 data.font[data.cursorIndex - 1] = self.selectedFont;
             }
@@ -379,6 +392,7 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".textEdit").empty()) {
             var editable = d3.select(".textEdit");
             var data = editable.datum();
+            data = data.pages[data.selectedPage];
             var parent = $(".textEdit").parent();
 
             data.cursorCurrXPos = parseFloat(parent.attr("x"));
@@ -443,6 +457,7 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".textEdit").empty()) {
             var editable = d3.select(".textEdit");
             var data = editable.datum();
+            data = data.pages[data.selectedPage];
             var parent = $(".textEdit").parent();
 
             data.cursorCurrXPos = parseFloat(parent.attr("x")) + parseFloat(parent.attr("width"));
@@ -519,8 +534,38 @@ LedMatrix = function (elemid, options) {
         writeScrollText(data, loc);
     };
 
+    this.addPage = function () {
+        var w = self.displayArea.select("textEdit");
+        if (!w.empty()) {
 
-    // ------------- Do Stuff -------------
+            w.datum().pages.push({
+                remove: false,
+                message: [],
+                font: [],
+                cursorMaxXPos: 0,
+                cursorCurrXPos: 0,
+                cursorMaxYPos: 0,
+                cursorCurrYPos: 0,
+                cursorIndex: 0,
+                color: "000"
+            });
+
+            // stop preview mode
+            stopAnimation();
+
+        }
+    };
+
+    this.removePage = function () {
+    };
+
+    this.nextPage = function () {
+    };
+
+    this.prevPage = function () {
+    };
+
+        // ------------- Do Stuff -------------
     // init some data
     var self = this;
     this.matrix = document.getElementById(elemid);
@@ -633,6 +678,7 @@ LedMatrix = function (elemid, options) {
         var clickX = mouse[0] - parseFloat(area.attr("x"));
         var clickY = mouse[1] - parseFloat(area.attr("y"));
         var data = area.datum();
+        data = data.pages[data.selectedPage];
         var parent = $(this).parent().find("g.char");
         var i;
         var j = 0;
@@ -714,6 +760,7 @@ LedMatrix = function (elemid, options) {
             var data = d3.select(this).select(".window").datum();
 
             if (data.type == "scroll") {
+                data = data.pages[data.selectedPage];
                 var parent = $(this);
                 var chars = parent.find("g.char");
                 var minX = $(chars[data.message.length - 1]).attr("dx");

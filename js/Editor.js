@@ -363,6 +363,7 @@ function editor(matrix) {
             console.log("nothing to fill with: " + n);
         } else {
             var data = edit.datum();
+            data = data.pages[data.selectedPage];
             var loc = $(".textEdit").parent();
 
             // insert new char at cursor pos
@@ -403,6 +404,7 @@ function editor(matrix) {
             return;
         }
         var data = edit.datum();
+        data = data.pages[data.selectedPage];
         var loc = $(".textEdit").parent();
         var mustRefresh = false;
 
@@ -495,6 +497,8 @@ function editor(matrix) {
         }
 
         var data = edit.datum();
+        data = data.pages[data.selectedPage];
+
 
         // if is a paged message
         if (edit.classed("page")) {
