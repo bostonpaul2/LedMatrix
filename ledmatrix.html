@@ -3,7 +3,6 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link href="css/style.css" rel="stylesheet" type="text/css">
-    <link href="css/message.css" rel="stylesheet" type="text/css">
     <script src="js/jquery-2.1.1.min.js"></script>
     <script src="js/d3.min.js"></script>
     <script src="js/mousetrap.min.js"></script>
@@ -73,18 +72,22 @@
         <button id="selectFont3" class="buttonTools" onclick="matrix.selectFont('orochiifon');">
             Select Font Orochiifon
         </button>
-        <button id="selectBlink1" class="buttonTools" onclick="matrix.selectBlink('blinkOff');">
+        <button id="selectBlink1" class="buttonTools" onclick="matrix.selectBlink('blink-fixed');">
             Select Blink off
         </button>
-        <button id="selectBlink2" class="buttonTools" onclick="matrix.selectBlink('blink-sim_fast');">
-             Select Blink 1
+        <button id="selectBlink2" class="buttonTools" onclick="matrix.selectBlink('blink-sim_slow');">
+             Select Blink Slow
         </button>
-        <button id="selectBlink3" class="buttonTools" onclick="matrix.selectBlink('blink2');">
-            Select Blink 2
+        <button id="selectBlink3" class="buttonTools" onclick="matrix.selectBlink('blink-sim_medium');">
+            Select Blink Medium
         </button>
-        <button id="selectBlink4" class="buttonTools" onclick="matrix.selectBlink('blink3');">
-            Select Blink 3
+        <button id="selectBlink4" class="buttonTools" onclick="matrix.selectBlink('blink-sim_fast');">
+            Select Blink Fast
         </button>
+        <button id="pageDuration" class="buttonTools" onclick="matrix.pageDuration(document.getElementById('sec').value);">
+            Set Page Duration
+        </button>
+        <input type="text" id="sec">
     </div>
     <div style="clear: both"></div>
 </div>

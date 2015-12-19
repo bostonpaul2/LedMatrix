@@ -201,7 +201,7 @@ LedMatrix = function (elemid, options) {
                     cursorIndex: 0,
                     color: "000"
                 }],
-                duration: 10,
+                duration: 2,
                 spent: 0,
                 selectedPage: 0,
                 scrollStep: 0,
@@ -243,6 +243,9 @@ LedMatrix = function (elemid, options) {
                 // if is a paged message
                 if (data[0].type == "page") {
                     w.classed(data[0].type, true);
+                    for (var i = 0; i < data[0].pages.length; i++) {
+                        writePageText(data[0].pages[i], edit.parent());
+                    }
                     writePageText(data[0].pages[data[0].selectedPage], edit.parent());
                 }
                 // if is a paged message
@@ -312,7 +315,6 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".selectedWindow").empty()) {
             // mark the selected window as textEdit
             var w = self.displayArea.select(".selectedWindow")
-                .on("click", moveCursor)
                 .classed('textEdit', true)
                 .classed('scroll', true);
 
@@ -323,6 +325,11 @@ LedMatrix = function (elemid, options) {
 
             // stop preview mode
             stopAnimation();
+
+            var data = w.datum();
+            data.preview = 0;
+            writeScrollText(data.pages[data.selectedPage], $(".selectedWindow").parent());
+
 
         } else {
             alert("select a window!");
@@ -343,6 +350,8 @@ LedMatrix = function (elemid, options) {
             // if is a paged message
             if (edit.classed("scroll")) {
                 writeAllScrollText(data, $(".textEdit").parent());
+            } else if (edit.classed("page")) {
+                data.selectedPage = 0;
             }
 
             edit.on("click", manageSelection)
@@ -392,7 +401,7 @@ LedMatrix = function (elemid, options) {
     };
 
     this.selectBlink  = function (id) {
-        if (id === undefined) id = 'off';
+        if (id === undefined) id = 'blink-fixed';
 
         self.selectedBlink = id;
     };
@@ -658,10 +667,14 @@ LedMatrix = function (elemid, options) {
             }
         }
     };
+
+    this.pageDuration = function(seconds){
+        console.log(seconds);
+    };
         // ------------- Do Stuff -------------
     // init some data
     var self = this;
-    var refreshView = 15;
+    var refreshView = 10;
     this.matrix = document.getElementById(elemid);
     this.options = options || {};
     this.options.horPixel = options.horPixel || 40;

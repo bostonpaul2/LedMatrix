@@ -137,6 +137,11 @@ writePageText = function (data, location) {
         writePageText(data, location);
         console.info("add a new page?");
     }
+
+    location.find("g.char").each(function() {
+        var self = $(this);
+        self.attr("class",  self.attr("class") + " " + self.attr("blinking"))
+    });
 };
 
 writeAllPageText = function (data, location) {
@@ -157,7 +162,7 @@ writeAllPageText = function (data, location) {
             // if the occupation is outside the windows width
             if (xPos + data.font[i].getWidth(data.message[i]) + pixelSizeTot > w + pixelSizeTot / 2) {
                 // set x pos to the window start x
-                xPos = x;
+                xPos = 0;
 
                 // calculate the max height of the previous line chars
                 maxH = 0;
@@ -191,7 +196,7 @@ writeAllPageText = function (data, location) {
         // if the char is a \n
         else {
             // set x pos to the window start x
-            xPos = x;
+            xPos = 0;
 
             // calculate the max height of the previous line chars
             maxH = 0;
@@ -220,6 +225,11 @@ writeAllPageText = function (data, location) {
             location.prepend(g);
         }
     }
+
+    location.find("g.char").each(function() {
+        var self = $(this);
+        self.attr("class",  self.attr("class") + " " + self.attr("blinking"))
+    });
 };
 
 writeScrollText = function (data, location) {
@@ -256,6 +266,11 @@ writeScrollText = function (data, location) {
             i = 0;
         }
     }
+
+    location.find("g.char").each(function() {
+        var self = $(this);
+        self.attr("class",  self.attr("class") + " " + self.attr("blinking"))
+    });
 };
 
 writeAllScrollText = function (data, location) {
@@ -311,6 +326,11 @@ writeAllScrollText = function (data, location) {
         // decrement x pos of te glyph width
         xPos -= pixelSizeTot + pixelOffset;
     }
+
+    location.find("g.char").each(function() {
+        var self = $(this);
+        self.attr("class",  self.attr("class") + " " + self.attr("blinking"))
+    });
 };
 
 setLedDimension = function (pixelSize, offsetSize, totSize, size) {
