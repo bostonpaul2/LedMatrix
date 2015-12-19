@@ -372,6 +372,9 @@ function editor(matrix) {
             //insert new font char at cursor pos
             data.font.splice(data.cursorIndex, 0, matrix.selectedFont);
 
+            //insert new blink type at cursor pos
+            data.blinking.splice(data.cursorIndex, 0, matrix.selectedBlink);
+
             // inc cursor index
             data.cursorIndex++;
 
@@ -698,7 +701,7 @@ function editor(matrix) {
             }
 
             var loc = $(".textEdit").parent();
-            matrix.refreshScrollText(data , loc);
+            matrix.refreshScrollText(data, loc);
         }
     }
 }

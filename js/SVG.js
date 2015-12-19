@@ -66,10 +66,10 @@ writePageText = function (data, location) {
                 .attr('transform', 'translate(' + xPos + ',' + yPos + ')')
                 .attr("dx", xPos - x)
                 .attr("dy", yPos - y)
-                .attr("index", i);
+                .attr("index", i)
+                .attr("blinking", data.blinking[i]);
 
-            location.append(g);
-            $(g).insertBefore(".textEdit");
+            location.prepend(g);
 
             // increment x pos of te glyph width
             xPos += data.font[i].getWidth(data.message[i]) + pixelSizeTot;
@@ -103,8 +103,7 @@ writePageText = function (data, location) {
                 .attr("index", i)
                 .attr('class', "char");
 
-            location.append(g);
-            $(g).insertBefore(".textEdit");
+            location.prepend(g);
         }
     }
 
@@ -140,6 +139,89 @@ writePageText = function (data, location) {
     }
 };
 
+writeAllPageText = function (data, location) {
+    var w = parseFloat(location.attr("width"));
+    var xPos = 0;
+    var yPos = 0;
+    var rowIndex = 0;
+    var maxH;
+
+    // save the used glyphs  in the font manager for time saving
+    matrix.fontManager.releaseGlyphs(
+        location.find("g.char"));
+
+    // for all the massage length
+    for (var i = 0; i < data.message.length; i++) {
+        // if the char is not a \n
+        if (data.message[i] != '\n') {
+            // if the occupation is outside the windows width
+            if (xPos + data.font[i].getWidth(data.message[i]) + pixelSizeTot > w + pixelSizeTot / 2) {
+                // set x pos to the window start x
+                xPos = x;
+
+                // calculate the max height of the previous line chars
+                maxH = 0;
+                for (var j = parseInt(rowIndex); j < i; j++) {
+                    if (maxH < data.font[j].getHeight()) {
+                        maxH = data.font[j].getHeight();
+                    }
+                }
+
+                // increment the row index
+                rowIndex = i;
+
+                // move down y pos of the calculated height
+                yPos += maxH;
+            }
+
+            // insert the glyph
+            var g = data.font[i].getGlyph(data.message[i])
+                .attr('transform', 'translate(' + xPos + ',' + yPos + ')')
+                .attr("dx", xPos)
+                .attr("dy", yPos)
+                .attr("index", i)
+                .attr("blinking", data.blinking[i]);
+
+
+            location.prepend(g);
+
+            // increment x pos of te glyph width
+            xPos += data.font[i].getWidth(data.message[i]) + pixelSizeTot;
+        }
+        // if the char is a \n
+        else {
+            // set x pos to the window start x
+            xPos = x;
+
+            // calculate the max height of the previous line chars
+            maxH = 0;
+            for (var j = parseInt(rowIndex); j < i; j++) {
+                if (maxH < data.font[j].getHeight()) {
+                    maxH = data.font[j].getHeight();
+                }
+            }
+
+            // increment the row index
+            rowIndex = i;
+
+            // move down y pos of the calculated height
+            yPos += maxH;
+
+            // insert the fake glyph just to detect mouse click
+            var g = SVG("g")
+                .attr('transform', 'translate(' + xPos + ',' + yPos + ')')
+                .attr('width', 1)
+                .attr('height', data.font[i].getHeight())
+                .attr("dx", xPos)
+                .attr("dy", yPos)
+                .attr("index", i)
+                .attr('class', "char");
+
+            location.prepend(g);
+        }
+    }
+};
+
 writeScrollText = function (data, location) {
     var area = location.find(".textEdit");
     var x = parseFloat(area.attr("x"));
@@ -162,10 +244,11 @@ writeScrollText = function (data, location) {
                 .attr('transform', 'translate(' + xPos + ',' + y + ')')
                 .attr("dx", xPos - x)
                 .attr("dy", 0)
-                .attr("index", i);
+                .attr("index", i)
+                .attr("blinking", data.blinking[i]);
 
-            location.append(g);
-            $(g).insertBefore(".textEdit");
+
+            location.prepend(g);
 
             // decrement x pos of te glyph width
             xPos -= pixelSizeTot + pixelOffset;
@@ -177,7 +260,6 @@ writeScrollText = function (data, location) {
 
 writeAllScrollText = function (data, location) {
     var area = location.find(".textEdit");
-    var parent = area.parent();
     var x = parseFloat(area.attr("x"));
     var y = parseFloat(area.attr("y"));
     var w = parseFloat(area.attr("width"));
@@ -197,10 +279,11 @@ writeAllScrollText = function (data, location) {
             .attr('transform', 'translate(' + xPos + ',' + y + ')')
             .attr("dx", xPos - x)
             .attr("dy", 0)
-            .attr("index", i);
+            .attr("index", i)
+            .attr("blinking", data.blinking[i]);
 
-        location.append(g);
-        $(g).insertBefore(".textEdit");
+
+        location.prepend(g);
 
         // calculate the max height of the previous line chars
         var maxH = 0;
@@ -216,11 +299,11 @@ writeAllScrollText = function (data, location) {
             if (!(maxH + y > size.height)) {
                 // if is possible enlarge
                 area.attr("height", maxH - y - pixelOffset);
-                parent.attr("height", maxH - y - pixelOffset);
+                location.attr("height", maxH - y - pixelOffset);
             } else {
                 // if is not possible enlarge height flag to cancel the inserted char
                 area.attr("y", y - maxH);
-                parent.attr("height", y - maxH);
+                location.attr("height", y - maxH);
             }
         }
 

@@ -3,6 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link href="css/style.css" rel="stylesheet" type="text/css">
+    <link href="css/message.css" rel="stylesheet" type="text/css">
     <script src="js/jquery-2.1.1.min.js"></script>
     <script src="js/d3.min.js"></script>
     <script src="js/mousetrap.min.js"></script>
@@ -54,6 +55,12 @@
         <button id="insertScrollMessage" class="buttonTools" onclick="matrix.insertScrollMessage();">
             Insert Scroll Message
         </button>
+        <button id="speedUp" class="buttonTools" onclick="matrix.speedUp();">
+            Speed Up
+        </button>
+        <button id="speedDown" class="buttonTools" onclick="matrix.speedDown();">
+            Speed Down
+        </button>
         <button id="saveMessage" class="buttonTools" onclick="matrix.saveMessage();">
             Save Message
         </button>
@@ -65,6 +72,18 @@
         </button>
         <button id="selectFont3" class="buttonTools" onclick="matrix.selectFont('orochiifon');">
             Select Font Orochiifon
+        </button>
+        <button id="selectBlink1" class="buttonTools" onclick="matrix.selectBlink('blinkOff');">
+            Select Blink off
+        </button>
+        <button id="selectBlink2" class="buttonTools" onclick="matrix.selectBlink('blink-sim_fast');">
+             Select Blink 1
+        </button>
+        <button id="selectBlink3" class="buttonTools" onclick="matrix.selectBlink('blink2');">
+            Select Blink 2
+        </button>
+        <button id="selectBlink4" class="buttonTools" onclick="matrix.selectBlink('blink3');">
+            Select Blink 3
         </button>
     </div>
     <div style="clear: both"></div>

@@ -193,7 +193,7 @@ LedMatrix = function (elemid, options) {
                     remove: false,
                     message: [],
                     font: [],
-                    blink: [],
+                    blinking: [],
                     cursorMaxXPos: 0,
                     cursorCurrXPos: 0,
                     cursorMaxYPos: 0,
@@ -202,7 +202,10 @@ LedMatrix = function (elemid, options) {
                     color: "000"
                 }],
                 duration: 10,
-                selectedPage: 0
+                spent: 0,
+                selectedPage: 0,
+                scrollStep: 0,
+                scrollSpeed: 1
             }];
 
             if (temp.datum() != 0) {
@@ -245,6 +248,7 @@ LedMatrix = function (elemid, options) {
                 // if is a paged message
                 else if (data[0].type == "scroll") {
                     w.classed(data[0].type, true);
+                    data[0].preview = 0;
                     writeAllScrollText(data[0].pages[data[0].selectedPage], edit.parent());
                 }
             }
@@ -385,6 +389,12 @@ LedMatrix = function (elemid, options) {
             self.cursorScrollOn();
         }
 
+    };
+
+    this.selectBlink  = function (id) {
+        if (id === undefined) id = 'off';
+
+        self.selectedBlink = id;
     };
 
     // turn on the cursor in top left corner
@@ -535,39 +545,123 @@ LedMatrix = function (elemid, options) {
     };
 
     this.addPage = function () {
-        var w = self.displayArea.select("textEdit");
+        var w = self.displayArea.select(".textEdit", ".page");
         if (!w.empty()) {
 
-            w.datum().pages.push({
+            var loc = $(".textEdit").parent();
+            var data = w.datum();
+
+            var page = {
                 remove: false,
                 message: [],
                 font: [],
+                blinking: [],
                 cursorMaxXPos: 0,
                 cursorCurrXPos: 0,
                 cursorMaxYPos: 0,
                 cursorCurrYPos: 0,
                 cursorIndex: 0,
                 color: "000"
-            });
+            };
 
-            // stop preview mode
-            stopAnimation();
+            data.selectedPage++;
 
+            data.pages.splice(data.selectedPage, 0, page);
+
+            // update cursor
+            self.cursorOff();
+            self.cursorPageOn();
+
+            writePageText(data.pages[data.selectedPage], loc);
         }
     };
 
     this.removePage = function () {
+        var w = self.displayArea.select(".textEdit", ".page");
+        if (!w.empty()) {
+
+            var loc = $(".textEdit").parent();
+            var data = w.datum();
+
+            if (data.pages.length > 1) {
+                data.pages.splice(data.selectedPage, 1);
+            }
+
+            if (data.selectedPage > 0) {
+                data.selectedPage--;
+            }
+
+            // update cursor
+            self.cursorOff();
+            self.cursorPageOn();
+
+            writePageText(data.pages[data.selectedPage], loc);
+        }
     };
 
     this.nextPage = function () {
+        var w = self.displayArea.select(".textEdit", ".page");
+        if (!w.empty()) {
+
+            var loc = $(".textEdit").parent();
+            var data = w.datum();
+
+            if (data.selectedPage < data.pages.length - 1) {
+                data.selectedPage++;
+            }
+
+            // update cursor
+            self.cursorOff();
+            self.cursorPageOn();
+
+            writePageText(data.pages[data.selectedPage], loc);
+        }
     };
 
     this.prevPage = function () {
+        var w = self.displayArea.select(".textEdit", ".page");
+        if (!w.empty()) {
+
+            var loc = $(".textEdit").parent();
+            var data = w.datum();
+
+            if (data.selectedPage > 0) {
+                data.selectedPage--;
+            }
+
+            // update cursor
+            self.cursorOff();
+            self.cursorPageOn();
+
+            writePageText(data.pages[data.selectedPage], loc);
+        }
     };
 
+    this.speedUp = function(){
+        var w = self.displayArea.select(".selectedWindow", ".scroll");
+        if (!w.empty()) {
+            var data = w.datum();
+
+            if (data.scrollSpeed > 1) {
+                data.scrollSpeed--;
+            }
+        }
+    };
+
+    this.speedDown = function(){
+        var w = self.displayArea.select(".selectedWindow", ".scroll");
+        if (!w.empty()) {
+            var data = w.datum();
+
+            if (data.scrollSpeed < 4) {
+                data.scrollSpeed++;
+            }
+        }
+    };
         // ------------- Do Stuff -------------
     // init some data
     var self = this;
+    var refreshView = 15;
     this.matrix = document.getElementById(elemid);
     this.options = options || {};
     this.options.horPixel = options.horPixel || 40;
@@ -611,6 +705,9 @@ LedMatrix = function (elemid, options) {
     // init font
     this.fontManager = FontManager();
     this.selectFont();
+
+    // init blink
+    this.selectBlink();
 
     // init preview stuff
     this.previewTimer = null;
@@ -746,7 +843,7 @@ LedMatrix = function (elemid, options) {
     function startAnimation() {
         if (self.previewTimer == null) {
             // start preview mode
-            self.previewTimer = setInterval(playAnimation, 40);
+            self.previewTimer = setInterval(playAnimation, refreshView);
         }
     }
 
@@ -758,36 +855,58 @@ LedMatrix = function (elemid, options) {
     function playAnimation() {
         d3.selectAll(".windowGroup").each(function () {
             var data = d3.select(this).select(".window").datum();
+            var parent = $(this);
 
             if (data.type == "scroll") {
-                data = data.pages[data.selectedPage];
-                var parent = $(this);
+                var firstPage = data.pages[data.selectedPage];
                 var chars = parent.find("g.char");
-                var minX = $(chars[data.message.length - 1]).attr("dx");
+                var minX = $(chars[0]).attr("dx");
                 var char;
                 var newX;
                 var i;
 
-                if (data.preview == undefined || data.preview == 0) {
-                    for (i = data.message.length - 1; i >= 0; i--) {
-                        char = $(chars[i]);
-                        newX = parseFloat(char.attr("dx")) + Math.abs(minX) + parseFloat(parent.find(".window").attr("width"));
-                        char.attr("transform", "translate(" + newX + "," + parseFloat(char.attr("dy")) + ")")
-                            .attr("dx", newX);
+                if (data.scrollStep == 0) {
+                    if (minX < 0) {
+                        for (i = firstPage.message.length - 1; i >= 0; i--) {
+                            char = $(chars[i]);
+                            newX = parseFloat(char.attr("dx")) + Math.abs(minX) + parseFloat(parent.find(".window").attr("width")) + self.options.offsetSize;
+                            char.attr("transform", "translate(" + newX + "," + parseFloat(char.attr("dy")) + ")")
+                                .attr("dx", newX);
+                        }
+                    } else {
+                        for (i = firstPage.message.length - 1; i >= 0; i--) {
+                            char = $(chars[i]);
+                            newX = parseFloat(char.attr("dx")) + parseFloat(parent.find(".window").attr("width")) + self.options.offsetSize - Math.abs(minX);
+                            char.attr("transform", "translate(" + newX + "," + parseFloat(char.attr("dy")) + ")")
+                                .attr("dx", newX);
+                        }
                     }
-                } else {
-                    for (i = data.message.length - 1; i >= 0; i--) {
+                } else if (data.scrollStep % data.scrollSpeed == 0) {
+                    for (i = firstPage.message.length - 1; i >= 0; i--) {
                         char = $(chars[i]);
-                        newX = parseFloat(char.attr("dx")) - pixelSizeTot;
+                        newX = parseFloat(char.attr("dx")) - self.options.totPixelSize;
                         char.attr("transform", "translate(" + newX + "," + parseFloat(char.attr("dy")) + ")")
                             .attr("dx", newX);
                     }
                 }
 
-                if (parseFloat($(chars[0]).attr("dx")) + (parseFloat($(chars[0]).attr("width"))) < 0) {
-                    data.preview = 0;
+                if (parseFloat($(chars[chars.length-1]).attr("dx")) + (parseFloat($(chars[chars.length-1]).attr("width"))) < 0) {
+                    data.scrollStep = 0;
                 } else {
-                    data.preview++;
+                    data.scrollStep++;
+                }
+            }
+            else if (data.type == "page") {
+                if (data.spent < data.duration) {
+                    data.spent += refreshView/1000;
+                } else {
+                    data.spent = 0;
+                    if (data.selectedPage == data.pages.length - 1) {
+                        data.selectedPage = 0;
+                    } else {
+                        data.selectedPage++;
+                    }
+                    writeAllPageText(data.pages[data.selectedPage], parent);
                 }
             }
         })
