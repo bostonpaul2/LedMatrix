@@ -205,7 +205,7 @@ LedMatrix = function (elemid, options) {
                 spent: 0,
                 selectedPage: 0,
                 scrollStep: 0,
-                scrollSpeed: 1
+                scrollSpeed: 0
             }];
 
             if (temp.datum() != 0) {
@@ -400,7 +400,7 @@ LedMatrix = function (elemid, options) {
 
     };
 
-    this.selectBlink  = function (id) {
+    this.selectBlink = function (id) {
         if (id === undefined) id = 'blink-fixed';
 
         self.selectedBlink = id;
@@ -458,7 +458,7 @@ LedMatrix = function (elemid, options) {
                     parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
-                $('.displayArea').append(Line(data.cursorCurrXPos -  self.options.offsetSize/2, data.cursorCurrYPos, data.cursorCurrXPos -  self.options.offsetSize/2, h, self.options.offsetSize * 2, "cursor"));
+                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize / 2, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize / 2, h, self.options.offsetSize * 2, "cursor"));
 
                 if (self.cursorBlinkTimer == null) {
                     // init the cursor blinking timer
@@ -492,7 +492,7 @@ LedMatrix = function (elemid, options) {
                     parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
-                $('.displayArea').append(Line(data.cursorCurrXPos -  self.options.offsetSize * 2, data.cursorCurrYPos, data.cursorCurrXPos -  self.options.offsetSize * 2, h, self.options.offsetSize * 2, "cursor"));
+                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize * 2, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize * 2, h, self.options.offsetSize * 2, "cursor"));
 
                 if (self.cursorBlinkTimer == null) {
                     // init the cursor blinking timer
@@ -646,29 +646,29 @@ LedMatrix = function (elemid, options) {
         }
     };
 
-    this.speedUp = function(){
+    this.speedUp = function () {
         var w = self.displayArea.select(".selectedWindow", ".scroll");
         if (!w.empty()) {
             var data = w.datum();
 
-            if (data.scrollSpeed > 1) {
+            if (data.scrollSpeed > 0) {
                 data.scrollSpeed--;
             }
         }
     };
 
-    this.speedDown = function(){
+    this.speedDown = function () {
         var w = self.displayArea.select(".selectedWindow", ".scroll");
         if (!w.empty()) {
             var data = w.datum();
 
-            if (data.scrollSpeed < 4) {
+            if (data.scrollSpeed < 3) {
                 data.scrollSpeed++;
             }
         }
     };
 
-    this.pageDuration = function(seconds){
+    this.pageDuration = function (seconds) {
         var w = self.displayArea.select(".selectedWindow", ".page");
         if (!w.empty()) {
             var data = w.datum();
@@ -677,7 +677,7 @@ LedMatrix = function (elemid, options) {
         }
 
     };
-        // ------------- Do Stuff -------------
+    // ------------- Do Stuff -------------
     // init some data
     var self = this;
     var refreshView = 10;
@@ -701,17 +701,17 @@ LedMatrix = function (elemid, options) {
         .attr("height", this.size.height)
         .attr("class", "displayArea");
 
-    var gGrid = SVG("g")
+    var gGrid = this.SVG("g")
         .attr("class", "background-grid");
 
     this.displayArea.grid = $(".displayArea").append(gGrid);
 
     // init data for ledGrid
     for (var y = this.options.offsetSize / 2; y <= this.size.height; y += this.options.totPixelSize) {
-        $(".background-grid").append(Line(0, y, this.size.width, y, this.options.offsetSize, "gridLine"));
+        $(".background-grid").append(self.Line(0, y, this.size.width, y, this.options.offsetSize, "gridLine"));
     }
     for (var x = this.options.offsetSize / 2; x <= this.size.width; x += this.options.totPixelSize) {
-        $(".background-grid").append(Line(x, 0, x, this.size.height, this.options.offsetSize, "gridLine"));
+        $(".background-grid").append(self.Line(x, 0, x, this.size.height, this.options.offsetSize, "gridLine"));
     }
 
     // init displayArea structure
@@ -722,7 +722,7 @@ LedMatrix = function (elemid, options) {
     this.cursorBlinkTimer = null;
 
     // init font
-    this.fontManager = FontManager();
+    this.fontManager = this.FontManager();
     this.selectFont();
 
     // init blink
@@ -904,7 +904,7 @@ LedMatrix = function (elemid, options) {
                                 .attr("dx", newX);
                         }
                     }
-                } else if (data.scrollStep % data.scrollSpeed == 0) {
+                } else if (data.scrollStep % Math.pow(2, data.scrollSpeed) == 0) {
                     for (i = firstPage.message.length - 1; i >= 0; i--) {
                         char = $(chars[i]);
                         newX = parseFloat(char.attr("dx")) - self.options.totPixelSize;
@@ -913,7 +913,7 @@ LedMatrix = function (elemid, options) {
                     }
                 }
 
-                if (parseFloat($(chars[chars.length-1]).attr("dx")) + (parseFloat($(chars[chars.length-1]).attr("width"))) < 0) {
+                if (parseFloat($(chars[chars.length - 1]).attr("dx")) + (parseFloat($(chars[chars.length - 1]).attr("width"))) < 0) {
                     data.scrollStep = 0;
                 } else {
                     data.scrollStep++;
@@ -921,7 +921,7 @@ LedMatrix = function (elemid, options) {
             }
             else if (data.type == "page") {
                 if (data.spent < data.duration) {
-                    data.spent += refreshView/1000;
+                    data.spent += refreshView / 1000;
                 } else {
                     data.spent = 0;
                     if (data.selectedPage == data.pages.length - 1) {
@@ -934,4 +934,1243 @@ LedMatrix = function (elemid, options) {
             }
         })
     }
+
+    // ------------- Private Editor Tools -------------
+    var mousetrap = new Mousetrap();
+
+    // bind keys
+    // numbers
+    mousetrap.bind('0', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('1', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('2', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('3', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('4', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('5', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('6', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('7', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('8', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('9', function (e, n) {
+        keyboardAscii(e, n);
+    });
+
+    // lowercase letters
+    mousetrap.bind('a', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('b', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('c', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('d', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('e', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('f', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('g', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('h', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('i', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('j', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('k', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('l', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('m', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('n', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('o', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('p', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('q', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('r', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('s', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('t', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('u', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('v', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('w', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('x', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('y', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('z', function (e, n) {
+        keyboardAscii(e, n);
+    });
+
+    // uppercase letters
+    mousetrap.bind('A', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('B', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('C', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('D', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('E', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('F', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('G', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('H', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('I', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('J', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('K', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('L', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('M', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('N', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('O', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('P', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('Q', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('R', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('S', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('T', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('U', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('V', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('W', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('X', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('Y', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('Z', function (e, n) {
+        keyboardAscii(e, n);
+    });
+
+    // symbols
+    mousetrap.bind('\\', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('|', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('!', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('"', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('~', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('%', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('&', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('/', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('(', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind(')', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('=', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('\'', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('?', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('^', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('[', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind(']', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('*', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('+', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('#', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('@', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('°', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('<', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('>', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind(',', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind(';', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('.', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind(':', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('-', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('_', function (e, n) {
+        keyboardAscii(e, n);
+    });
+    mousetrap.bind('space', function (e) {
+        keyboardAscii(e, " ");
+    });
+
+    // bind arrows
+    mousetrap.bind('left', function (e, n) {
+        keyboardArrow(e, n);
+    });
+    mousetrap.bind('up', function (e, n) {
+        keyboardArrow(e, n);
+    });
+    mousetrap.bind('right', function (e, n) {
+        keyboardArrow(e, n);
+    });
+    mousetrap.bind('down', function (e, n) {
+        keyboardArrow(e, n);
+    });
+
+    // bind control
+    mousetrap.bind('backspace', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('tab', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('enter', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('esc', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('del', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('shift', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('ctrl', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('alt', function (e, n) {
+        keyboardControl(e, n);
+    });
+    mousetrap.bind('meta', function (e, n) {
+        keyboardControl(e, n);
+    });
+
+    // disabled control
+    mousetrap.bind('shift+space', function (e, n) {
+        e.preventDefault();
+        console.log("disabled: " + n);
+        keyboardAscii(e, " ");
+    });
+
+
+    // unused control
+    /*
+     mousetrap.bind('pageup', function (e, n) {keyboardControl(e, n);});
+     mousetrap.bind('pagedown', function (e, n) {keyboardControl(e, n);});
+     mousetrap.bind('ins', function (e, n) {keyboardControl(e, n);});
+     mousetrap.bind('home', function (e, n) {keyboardControl(e, n);});
+     mousetrap.bind('capslock', function (e, n) {keyboardControl(e, n);});
+     mousetrap.bind('end', function (e, n) {keyboardControl(e, n);});
+     mousetrap.bind('escape', function (e, n) {keyboardControl(e, n);});
+     mousetrap.bind('return', function (e, n) {keyboardControl(e, n);});
+     */
+
+
+    // start text editing
+    function keyboardAscii(e, n) {
+        // stop the event propagation
+        e.preventDefault();
+
+        // get the text area
+        var edit = d3.select(".textEdit");
+
+        // check if is empty
+        if (edit.empty()) {
+            console.log("nothing to fill with: " + n);
+        } else {
+            var data = edit.datum();
+            data = data.pages[data.selectedPage];
+            var loc = $(".textEdit").parent();
+
+            // insert new char at cursor pos
+            data.message.splice(data.cursorIndex, 0, n);
+
+            //insert new font char at cursor pos
+            data.font.splice(data.cursorIndex, 0, self.selectedFont);
+
+            //insert new blink type at cursor pos
+            data.blinking.splice(data.cursorIndex, 0, self.selectedBlink);
+
+            // inc cursor index
+            data.cursorIndex++;
+
+            // if is a paged message
+            if (edit.classed("page")) {
+                // Writing the text:
+                writePageText(data, loc);
+
+                // Refreshing the cursor:
+                self.refreshCursor(data);
+            }
+            // if is a paged message
+            else if (edit.classed("scroll")) {
+                // Writing the text:
+                writeScrollText(data, loc);
+            }
+        }
+    }
+
+    // control detection
+    function keyboardControl(e, n) {
+        // stop the event propagation
+        e.preventDefault();
+
+        // get the text area
+        var edit = d3.select(".textEdit");
+
+        // check if is empty
+        if (edit.empty()) {
+            return;
+        }
+        var data = edit.datum();
+        data = data.pages[data.selectedPage];
+        var loc = $(".textEdit").parent();
+        var mustRefresh = false;
+
+        switch (n) {
+            case "backspace":
+            {
+                // if is not the first char
+                if (data.cursorIndex > 0) {
+                    // insert new char at cursor pos
+                    data.message.splice(data.cursorIndex - 1, 1);
+
+                    //insert new font char at cursor pos
+                    data.font.splice(data.cursorIndex - 1, 1);
+
+                    //insert new blink type at cursor pos
+                    data.blinking.splice(data.cursorIndex- 1, 1);
+
+                    // inc cursor index
+                    data.cursorIndex--;
+
+                    // Must refresh:
+                    mustRefresh = true;
+                }
+                break;
+            }
+            case "del":
+            {
+                // if is not the last char
+                if (data.cursorIndex < data.message.length) {
+                    // insert new char at cursor pos
+                    data.message.splice(data.cursorIndex, 1);
+
+                    //insert new font char at cursor pos
+                    data.font.splice(data.cursorIndex, 1);
+
+                    //insert new blink type at cursor pos
+                    data.blinking.splice(data.cursorIndex, 1);
+
+
+                    // Must refresh:
+                    mustRefresh = true;
+                }
+                break;
+            }
+            case "enter":
+            {
+                if (edit.classed("page")) {
+                    // insert new char at cursor pos
+                    data.message.splice(data.cursorIndex, 0, '\n');
+
+                    //insert new font char at cursor pos
+                    data.font.splice(data.cursorIndex, 0, self.selectedFont);
+
+                    //insert new blink type at cursor pos
+                    data.blinking.splice(data.cursorIndex, 0, self.selectedBlink);
+
+                    // inc cursor index
+                    data.cursorIndex++;
+
+                    // Must refresh:
+                    mustRefresh = true;
+                }
+                break;
+            }
+        }
+
+        // if is a paged message
+        if (edit.classed("page")) {
+            // Only if needed:
+            if (mustRefresh) {
+                // Writing the text:
+                writePageText(data, loc);
+
+                // Refreshing the cursor:
+                self.refreshCursor(data);
+            }
+        }
+        // if is a scroll message
+        else if (edit.classed("scroll")) {
+            // Only if needed:
+            if (mustRefresh) {
+                // Writing the text:
+                writeScrollText(data, loc);
+            }
+        }
+    }
+
+    // move arrow detection
+    function keyboardArrow(e, n) {
+        // stop the event propagation
+        e.preventDefault();
+
+        // get the paged text area
+        var edit = d3.select(".textEdit");
+        var parent = $(".textEdit").parent();
+
+        // check if is empty
+        if (edit.empty()) {
+            return;
+        }
+
+        var data = edit.datum();
+        data = data.pages[data.selectedPage];
+
+
+        // if is a paged message
+        if (edit.classed("page")) {
+            //if is not empty start
+            var chars = parent.find("g.char");
+            var currentX = data.cursorCurrXPos - parseFloat(parent.attr("x"));
+            var i;
+            var j;
+            var rowIndex;
+            var row = [];
+            var prevY;
+            var isNewline;
+            var newRow;
+            var xS;
+            var p;
+            var charY;
+            var closest;
+
+
+            switch (n) {
+                case "left":
+                {
+                    // if is not the first
+                    if (data.cursorIndex > 0) {
+
+                        // inc cursor index
+                        data.cursorIndex--;
+                    }
+                    break;
+                }
+                case "right":
+                {
+                    // if is not the last
+                    if (data.cursorIndex < data.message.length) {
+
+                        // inc cursor index
+                        data.cursorIndex++;
+                    }
+                    break;
+                }
+                case "down":
+                {
+                    j = 0;
+                    rowIndex = null;
+                    row = [];
+                    prevY = 0;
+
+                    row[j] = [];
+
+                    // if the message is not empty
+                    if (data.message.length != 0) {
+
+                        // insert all the rows in the array
+                        for (i = data.message.length - 1; i >= 0; i--) {
+                            p = $(chars[i]);
+                            charY = parseFloat(p.attr("dy"));
+
+                            if (prevY != charY) {
+                                prevY = charY;
+                                j++;
+                                row[j] = [];
+                            }
+                            row[j].push(p);
+                        }
+
+                        // search what is the involved row
+                        for (i in row) {
+                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
+                                rowIndex = i;
+                            }
+                        }
+
+                        // if is not the last row
+                        if (rowIndex < row.length - 1) {
+                            newRow = parseInt(rowIndex) + 1;
+
+                            // insert the last point of each letters in an array
+                            xS = [];
+                            for (j in row[newRow]) {
+                                xS.push(parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")));
+                            }
+
+                            // find the closest point in the array with the cursor position
+                            closest = xS.reduce(function (prev, curr) {
+                                return (Math.abs(curr - currentX) < Math.abs(prev - currentX) ? curr : prev);
+                            });
+
+                            // select the index of the nearest element
+                            for (j in row[newRow]) {
+                                if (parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")) == closest) {
+                                    data.cursorIndex = parseFloat(row[newRow][j].attr("index")) + 1;
+                                }
+                            }
+                        } else {
+                            // if is the last row put the cursor at the end of the message
+                            data.cursorIndex = data.message.length;
+                        }
+                    }
+                    break;
+                }
+                case "up":
+                {
+                    j = 0;
+                    rowIndex = null;
+                    row = [];
+                    prevY = 0;
+
+                    row[j] = [];
+
+                    // if the message is not empty
+                    if (data.message.length != 0) {
+
+                        // insert all the rows in the array
+                        for (i = data.message.length - 1; i >= 0; i--) {
+                            p = $(chars[i]);
+                            charY = parseFloat(p.attr("dy"));
+
+                            if (prevY != charY) {
+                                prevY = charY;
+                                j++;
+                                row[j] = [];
+                            }
+                            row[j].push(p);
+                        }
+
+                        // search what is the involved row
+                        for (i in row) {
+                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
+                                rowIndex = i;
+                            }
+                        }
+
+                        // if is not the first row
+                        if (rowIndex > 0) {
+                            isNewline = data.message[data.cursorIndex - 1] === '\n';
+                            newRow = parseInt(rowIndex) - 1;
+
+                            // insert the last point of each letters in an array
+                            xS = [];
+                            for (j in row[newRow]) {
+                                xS.push(parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")));
+                            }
+
+                            // find the closest point in the array with the cursor position
+                            closest = xS.reduce(function (prev, curr) {
+                                return (Math.abs(curr - currentX) < Math.abs(prev - currentX) ? curr : prev);
+                            });
+
+                            // select the index of the nearest element
+                            for (j in row[newRow]) {
+                                if (parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")) == closest) {
+                                    data.cursorIndex = parseFloat(row[newRow][j].attr("index")) + 1;
+                                    // special case: second line first column, append to first line first column
+                                    if (isNewline && data.cursorIndex == 1) {
+                                        data.cursorIndex = 0;
+                                    }
+                                }
+                            }
+
+                        } else {
+                            // if is the first row put the cursor at the start of the message
+                            data.cursorIndex = 0;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // Refreshing the cursor position and font selection:
+            self.refreshCursor(data);
+        }
+        // if is a scrolling message
+        else if (edit.classed("scroll")) {
+            switch (n) {
+                case "left":
+                case "up":
+                {
+                    // if is not the first
+                    if (data.cursorIndex > 0) {
+
+                        // inc cursor index
+                        data.cursorIndex--;
+                    }
+                    break;
+                }
+                case "right":
+                case "down":
+                {
+                    // if is not the last
+                    if (data.cursorIndex < data.message.length) {
+
+                        // inc cursor index
+                        data.cursorIndex++;
+                    }
+                    break;
+                }
+            }
+
+            var loc = $(".textEdit").parent();
+            self.refreshScrollText(data, loc);
+        }
+    }
+
+    // ------------- SVG Tools -------------
+    function writePageText(data, location) {
+        var area = location.find(".textEdit");
+        var parent = area.parent();
+        var x = parseFloat(area.attr("x"));
+        var y = parseFloat(area.attr("y"));
+        var w = parseFloat(area.attr("width"));
+        var h = parseFloat(area.attr("height"));
+        var xPos = x;
+        var yPos = y;
+        var cancel = false;
+        var rowIndex = 0;
+        var maxH;
+
+        // save the used glyphs  in the font manager for time saving
+        matrix.fontManager.releaseGlyphs(
+            $(".textEdit").parent().find("g.char"));
+
+        // for all the massage length
+        for (var i = 0; i < data.message.length; i++) {
+            // if the char is not a \n
+            if (data.message[i] != '\n') {
+                // if the occupation is outside the windows width
+                if (xPos + data.font[i].getWidth(data.message[i]) + self.options.totPixelSize > x + w + self.options.totPixelSize / 2) {
+                    // set x pos to the window start x
+                    xPos = x;
+
+                    // calculate the max height of the previous line chars
+                    maxH = 0;
+                    for (var j = parseInt(rowIndex); j < i; j++) {
+                        if (maxH < data.font[j].getHeight()) {
+                            maxH = data.font[j].getHeight();
+                        }
+                    }
+
+                    // increment the row index
+                    rowIndex = i;
+
+                    // move down y pos of the calculated height
+                    yPos += maxH;
+                }
+
+                // insert the glyph
+                var g = data.font[i].getGlyph(data.message[i])
+                    .attr('transform', 'translate(' + xPos + ',' + yPos + ')')
+                    .attr("dx", xPos - x)
+                    .attr("dy", yPos - y)
+                    .attr("index", i)
+                    .attr("blinking", data.blinking[i]);
+
+                location.prepend(g);
+
+                // increment x pos of te glyph width
+                xPos += data.font[i].getWidth(data.message[i]) + self.options.totPixelSize;
+            }
+            // if the char is a \n
+            else {
+                // set x pos to the window start x
+                xPos = x;
+
+                // calculate the max height of the previous line chars
+                maxH = 0;
+                for (var j = parseInt(rowIndex); j < i; j++) {
+                    if (maxH < data.font[j].getHeight()) {
+                        maxH = data.font[j].getHeight();
+                    }
+                }
+
+                // increment the row index
+                rowIndex = i;
+
+                // move down y pos of the calculated height
+                yPos += maxH;
+
+                // insert the fake glyph just to detect mouse click
+                var g = self.SVG("g")
+                    .attr('transform', 'translate(' + xPos + ',' + yPos + ')')
+                    .attr('width', 1)
+                    .attr('height', data.font[i].getHeight())
+                    .attr("dx", xPos - x)
+                    .attr("dy", yPos - y)
+                    .attr("index", i)
+                    .attr('class', "char");
+
+                location.prepend(g);
+            }
+        }
+
+        // calculate the max height of the previous line chars
+        maxH = 0;
+        for (var j = parseInt(rowIndex); j < data.message.length; j++) {
+            if (maxH < data.font[j].getHeight()) {
+                maxH = data.font[j].getHeight();
+            }
+        }
+        yPos += maxH;
+
+        // adapt window height
+        if (yPos >= y + h) {
+            // check window height
+            if (!(yPos > self.size.height)) {
+                // if is possible enlarge
+                area.attr("height", yPos - y - self.options.offsetSize);
+                parent.attr("height", yPos - y - self.options.offsetSize);
+            } else {
+                // if is not possible enlarge height flag to cancel the inserted char
+                cancel = true;
+            }
+        }
+
+        // recursive call of the function if is flagged
+        if (cancel) {
+            data.cursorIndex--;
+            data.message.splice(data.cursorIndex, 1);
+            data.font.splice(data.cursorIndex, 1);
+            writePageText(data, location);
+            console.info("add a new page?");
+        }
+
+        location.find("g.char").each(function () {
+            var self = $(this);
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+        });
+    }
+
+    function writeAllPageText(data, location) {
+        var w = parseFloat(location.attr("width"));
+        var xPos = 0;
+        var yPos = 0;
+        var rowIndex = 0;
+        var maxH;
+
+        // save the used glyphs  in the font manager for time saving
+        matrix.fontManager.releaseGlyphs(
+            location.find("g.char"));
+
+        // for all the massage length
+        for (var i = 0; i < data.message.length; i++) {
+            // if the char is not a \n
+            if (data.message[i] != '\n') {
+                // if the occupation is outside the windows width
+                if (xPos + data.font[i].getWidth(data.message[i]) + self.options.totPixelSize > w + self.options.totPixelSize / 2) {
+                    // set x pos to the window start x
+                    xPos = 0;
+
+                    // calculate the max height of the previous line chars
+                    maxH = 0;
+                    for (var j = parseInt(rowIndex); j < i; j++) {
+                        if (maxH < data.font[j].getHeight()) {
+                            maxH = data.font[j].getHeight();
+                        }
+                    }
+
+                    // increment the row index
+                    rowIndex = i;
+
+                    // move down y pos of the calculated height
+                    yPos += maxH;
+                }
+
+                // insert the glyph
+                var g = data.font[i].getGlyph(data.message[i])
+                    .attr('transform', 'translate(' + xPos + ',' + yPos + ')')
+                    .attr("dx", xPos)
+                    .attr("dy", yPos)
+                    .attr("index", i)
+                    .attr("blinking", data.blinking[i]);
+
+
+                location.prepend(g);
+
+                // increment x pos of te glyph width
+                xPos += data.font[i].getWidth(data.message[i]) + self.options.totPixelSize;
+            }
+            // if the char is a \n
+            else {
+                // set x pos to the window start x
+                xPos = 0;
+
+                // calculate the max height of the previous line chars
+                maxH = 0;
+                for (var j = parseInt(rowIndex); j < i; j++) {
+                    if (maxH < data.font[j].getHeight()) {
+                        maxH = data.font[j].getHeight();
+                    }
+                }
+
+                // increment the row index
+                rowIndex = i;
+
+                // move down y pos of the calculated height
+                yPos += maxH;
+
+                // insert the fake glyph just to detect mouse click
+                var g = self.SVG("g")
+                    .attr('transform', 'translate(' + xPos + ',' + yPos + ')')
+                    .attr('width', 1)
+                    .attr('height', data.font[i].getHeight())
+                    .attr("dx", xPos)
+                    .attr("dy", yPos)
+                    .attr("index", i)
+                    .attr('class', "char");
+
+                location.prepend(g);
+            }
+        }
+
+        location.find("g.char").each(function () {
+            var self = $(this);
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+        });
+    }
+
+    function writeScrollText(data, location) {
+        var area = location.find(".textEdit");
+        var x = parseFloat(area.attr("x"));
+        var y = parseFloat(area.attr("y"));
+        var w = parseFloat(area.attr("width"));
+        var xPos = x + w;
+
+        // save the used glyphs  in the font manager for time saving
+        matrix.fontManager.releaseGlyphs(location.find("g.char"));
+
+        // from the index to the start
+        for (var i = data.cursorIndex - 1; i >= 0; i--) {
+            // if the occupation is not outside the windows width
+            if (xPos - data.font[i].getWidth(data.message[i]) - self.options.offsetSize + 100 > x) {
+                // decrement x pos of glyph width
+                xPos -= data.font[i].getWidth(data.message[i]) - self.options.offsetSize;
+
+                // insert the glyph
+                var g = data.font[i].getGlyph(data.message[i])
+                    .attr('transform', 'translate(' + xPos + ',' + y + ')')
+                    .attr("dx", xPos - x)
+                    .attr("dy", 0)
+                    .attr("index", i)
+                    .attr("blinking", data.blinking[i]);
+
+
+                location.prepend(g);
+
+                // decrement x pos of te glyph width
+                xPos -= self.options.totPixelSize + self.options.offsetSize;
+            } else {
+                i = 0;
+            }
+        }
+
+        location.find("g.char").each(function () {
+            var self = $(this);
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+        });
+    }
+
+    function writeAllScrollText(data, location) {
+        var area = location.find(".textEdit");
+        var x = parseFloat(area.attr("x"));
+        var y = parseFloat(area.attr("y"));
+        var w = parseFloat(area.attr("width"));
+        var h = parseFloat(area.attr("height"));
+        var xPos = x + w;
+
+        // save the used glyphs  in the font manager for time saving
+        matrix.fontManager.releaseGlyphs(location.find("g.char"));
+
+        // from the index to the start
+        for (var i = data.message.length - 1; i >= 0; i--) {
+            // decrement x pos of glyph width
+            xPos -= data.font[i].getWidth(data.message[i]) - self.options.offsetSize;
+
+            // insert the glyph
+            var g = data.font[i].getGlyph(data.message[i])
+                .attr('transform', 'translate(' + xPos + ',' + y + ')')
+                .attr("dx", xPos - x)
+                .attr("dy", 0)
+                .attr("index", i)
+                .attr("blinking", data.blinking[i]);
+
+
+            location.prepend(g);
+
+            // calculate the max height of the previous line chars
+            var maxH = 0;
+            for (var j = 0; j < data.message.length; j++) {
+                if (maxH < data.font[j].getHeight()) {
+                    maxH = data.font[j].getHeight();
+                }
+            }
+
+            // adapt window height
+            if (maxH >= y + h) {
+                // check window height
+                if (!(maxH + y > self.size.height)) {
+                    // if is possible enlarge
+                    area.attr("height", maxH - y - self.options.offsetSize);
+                    location.attr("height", maxH - y - self.options.offsetSize);
+                } else {
+                    // if is not possible enlarge height flag to cancel the inserted char
+                    area.attr("y", y - maxH);
+                    location.attr("height", y - maxH);
+                }
+            }
+
+
+            // decrement x pos of te glyph width
+            xPos -= self.options.totPixelSize + self.options.offsetSize;
+        }
+
+        location.find("g.char").each(function () {
+            var self = $(this);
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+        });
+    }
+
+};
+
+// ------------- Data type -------------
+// An SVG element:
+LedMatrix.prototype.SVG = function (tag) {
+    return $(document.createElementNS('http://www.w3.org/2000/svg', tag));
+};
+
+// A single line:
+LedMatrix.prototype.Line = function (x1, y1, x2, y2, strokeWidth, klass) {
+    return this.SVG('line')
+        .attr('x1', x1)
+        .attr('y1', y1)
+        .attr('x2', x2)
+        .attr('y2', y2)
+        .attr('stroke-width', strokeWidth)
+        .attr('class', klass);
+};
+
+// A single led:
+LedMatrix.prototype.Led = function (x, y, size) {
+    var self = this;
+    return {
+        getSize: function () {
+            return size;
+        },
+        createSvg: function () {
+            return self.SVG('rect')
+                .attr('x', x)
+                .attr('y', y)
+                .attr('width', size)
+                .attr('height', size)
+                .attr('class', "led");
+        }
+    };
+};
+
+// Definition of a glyph:
+LedMatrix.prototype.Glyph = function (char) {
+    var leds = [], pos = 1,
+        width = parseFloat(char.width) * this.options.totPixelSize,
+        height = parseFloat(char.height) * this.options.totPixelSize;
+    var self = this;
+
+    for (var y = 0; y < char.height; y++) {
+        for (var x = 0; x < char.width; x++) {
+            if (char.data[pos] === '1') {
+                leds.push(this.Led(
+                    x * this.options.totPixelSize,
+                    y * this.options.totPixelSize,
+                    this.options.pixelSize));
+            }
+            pos += 2;
+        }
+    }
+    return {
+        leds: leds,
+        getWidth: function () {
+            return width;
+        },
+        getHeight: function () {
+            return height;
+        },
+        createSvg: function () {
+            var res = self.SVG('g')
+                .attr('fill', 'orange');
+            for (var i in leds) {
+                res.append(leds[i].createSvg());
+            }
+            res.attr('height', height)
+                .attr('width', width);
+            return res;
+        }
+    };
+};
+
+// A font that can be crated from the JSON representation:
+LedMatrix.prototype.Font = function (name, data) {
+    // Attributes:
+    var self = this;
+    var res = {
+        name: name,
+        chars: []
+    };
+    data = JSON.parse(data);
+    for (var i in data.font.glyphs.glyph) {
+        var glyph = data.font.glyphs.glyph[i];
+        var char = String.fromCharCode(glyph['@chr']);
+        glyph = glyph.map;
+        res.chars[char] = {
+            width: glyph['@width'],
+            height: glyph['@height'],
+            type: glyph['@type'],
+            data: glyph['$'],
+            svgs: []
+        };
+    }
+
+    // Methods:
+    res.getHeight = function () {
+        var g = this.getGlyph('_');
+        var res = parseFloat(g.attr('height'));
+        this.releaseGlyph(g);
+        return res;
+    };
+    res.getWidth = function (name) {
+        var g = this.getGlyph(name);
+        var res = parseFloat(g.attr('width'));
+        this.releaseGlyph(g);
+        return res;
+    };
+    res.getGlyph = function (name) {
+        // Obtaining the glyph:
+        var char = this.chars[name];
+        if (char.glyph === undefined) {
+            // Decoding the glyph:
+            char.glyph = self.Glyph(char);
+        }
+
+        // Lookup of an already created SVG:
+        var svg;
+        if (char.svgs.length > 0) {
+            // Retrieving it:
+            svg = char.svgs.pop();
+        }
+        else {
+            // Creating it:
+            svg = char.glyph.createSvg();
+
+            // Adding some attributes:
+            svg.attr('char', name);
+        }
+
+        // Some changes:
+        svg.attr('class', 'char')
+            .attr('font', this.name);
+
+        // Done:
+        return svg;
+    };
+    res.releaseGlyph = function (g) {
+        // Checking:
+        if (g === undefined) {
+            return;
+        }
+
+        // Some changes:
+        g.attr('class', 'char-hidden');
+
+        // Adding it to the right character:
+        this.chars[g.attr('char')].svgs.push(g);
+    };
+
+    // Done:
+    return res;
+};
+
+// The font manager:
+LedMatrix.prototype.FontManager = function () {
+    // The actually loaded fonts:
+    var fonts = {
+        orochiifon: this.Font('orochiifon', '{"font":{"glyphs":{"glyph":[{"@chr":"8217","map":{"@width":"6","@height":"32","@type":"BINARY","$":"000000010101000000010101000000010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"8221","map":{"@width":"9","@height":"32","@type":"BINARY","$":"010101000000010101010101000000010101010101000000010101010101000000010101010101000000010101010101000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"32","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"33","map":{"@width":"3","@height":"32","@type":"BINARY","$":"010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000010101010101010101000000000000000000000000000000000000"}},{"@chr":"35","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000001010100000000000101010000000101010000000000010101000000010101000001010101010101010101010101010101010101010101010101010101010101010101010101010101010100000001010100000001010100000000000101010000000101010000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000010101000000010101000000000001010100000001010100000000000101010000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"163","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000001010101010100000000000000000101010101010000000000000000010101010101000000000001010100000000000101010000000101010000000000010101000000010101000000000001010100000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000001010101010101010100000000000101010101010101010000000000010101010101010101000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"36","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000000000101010000000101010000000000010101010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000010101000001010100000000000001010100000101010000000000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"37","map":{"@width":"17","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010100000000000000000000000101010101010000000000000000000000010101010101000000000000000000000001010101010100000000000101010000000101010101010000000000010101000000010101010101000000010101010100000000000000000000000001010100000000000000000000000000000101010000000000000000000000010101000000000000000000000000000001010100000000000000000000000000000101010000000000000000000000010101000000000001010101010100000001010100000000000101010101010000000101010000000000010101010101010101000000000000000001010101010101010100000000000000000101010101010101010000000000000000010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"38","map":{"@width":"17","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000000000000000000000000000101010000000000000000000000000000010101000000000000000000000001010100000001010100000000000000000101010000000101010000000000000000010101000000010101000000000000000001010100000001010100000000000000000101010000000101010000000000000000010101000000010101000000000000000000000001010100000000000000000000000000000101010000000000000000000000010101010101010101000000000000000001010100000001010100000000000000000101010000000101010000000000010101000000000000010101000001010101010100000000000001010100000101010101010000000000000101010000010101010101000000000000010101010100000001010100000000000001010101010000000101010000000000000101010101000000000000010101010101010101000001010100000001010101010101010100000101010000000101010101010101010000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"40","map":{"@width":"9","@height":"32","@type":"BINARY","$":"000000000000010101000000000000010101000000000000010101000000010101000000000000010101000000000000010101000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000000000010101000000000000010101000000000000010101000000000000000000010101000000000000010101000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"41","map":{"@width":"9","@height":"32","@type":"BINARY","$":"010101000000000000010101000000000000010101000000000000000000010101000000000000010101000000000000010101000000000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000010101000000000000010101000000000000010101000000010101000000000000010101000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"42","map":{"@width":"9","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000010101010101000000010101010101000000010101000000010101000000000000010101000000010101010101010101010101000000010101010101000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"43","map":{"@width":"19","@height":"32","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000000000000000000000000000000101010000000000000000000000000000000001010100000000000000000000000000000000010101000000000000000000000000000000000101010000000000000000000000000000000001010100000000000000000000000000000000010101000000000000000000000000000000000101010000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000001010100000000000000000000000000000000010101000000000000000000000000000000000101010000000000000000000000000000000001010100000000000000000000000000000000010101000000000000000000000000000000000101010000000000000000000000000000000001010100000000000000000000000000000000010101000000000000000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"44","map":{"@width":"3","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101000000000000000000"}},{"@chr":"45","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"46","map":{"@width":"3","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101000000000000000000000000000000000000"}},{"@chr":"47","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000010101010101000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"48","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000001010101000001010101010100000101010100000101010101010000010101010000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"49","map":{"@width":"9","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101000000010101010101000000010101010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000"}},{"@chr":"50","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101000000000000010101010101000000000000010101010101000000010101000000000000010101010101000000000000010101010101000000000000010101000000000000000000010101000000000000000000010101000000010101010101010101000000010101010101000000000000010101010101000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"51","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101000000000000010101010101000000000000010101010101000000010101000000000000010101010101000000000000010101010101000000000000010101000000000000000000010101000000000000000000010101000000010101010101010101000000010101010101000000000000010101010101000000000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101000000010101010101000000000000010101010101000000000000010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"52","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"53","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000010101000000000000000000010101000000000000000000010101010101010101000000010101010101010101000000010101010101010101010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101010101010101010101000000010101010101010101000000010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"54","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101000000000000010101010101000000000000010101010101000000010101000000000000000000010101000000000000000000010101000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101010101010101000000010101010101010101000000010101010101010101000000010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101000000010101010101000000000000010101010101000000000000010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"55","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000010101010101000000000000010101000000000000000000010101000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"56","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101000000000000010101010101000000000000010101010101000000010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101010101010101010101000000010101010101000000000000010101010101000000010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101000000010101010101000000000000010101010101000000000000010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"57","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101000000000000010101010101000000000000010101010101000000010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000010101010101010101010101010101000000010101010101010101000000010101010101010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000010101000000000000000000010101000000000000000000010101000000010101010101000000000000010101010101000000000000010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"58","map":{"@width":"3","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101000000000000000000010101010101010101000000000000000000000000000000000000000000000000000000"}},{"@chr":"59","map":{"@width":"3","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101000000000000000000000000000000000000010101010101010101010101010101010101000000000000000000"}},{"@chr":"60","map":{"@width":"9","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000000000010101000000010101010101000000010101000000000000010101000000010101000000000000010101000000000000010101000000000000000000010101000000000000010101000000000000010101000000000000000000010101000000000000010101000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"61","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"62","map":{"@width":"9","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000000000010101000000000000010101010101000000000000010101000000000000010101000000000000000000010101000000000000010101000000000000010101000000010101000000000000010101000000000000010101000000010101000000000000010101000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"63","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000001010100000000000000000000000101010000000000000000010101010101000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"64","map":{"@width":"20","@height":"32","@type":"BINARY","$":"00000000000001010101010101010000000000000000000000000101010101010101000000000000000000000000010101010101010100000000000000000001010100000000000000000101010000000000000101010000000000000000010101000000000000010101000000000000000001010100000001010100000000000001010100000000000101010101010000000000000101010000000000010101010101000000000000010101000000000001010101010100000001010100000101010000000101010101010000000101010000010101000000010101010101000000010101000001010100000001010101010100000001010100000101010000000101010101010000000101010000010101000000010101010101000000010101010101010101010101010101010100000001010101010101010101010101010101010000000101010101010101010101010101010101000000000000000000000000000000000001010100000000000000000000000000000000000101010000000000000000000000000000000000000000010101000000000000000001010100000000000001010100000000000000000101010000000000000101010000000000000000010101000000000000000000010101010101010100000000000000000000000001010101010101010000000000000000000000000101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"65","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000001010101010101010000000000000101010101010101000000000000010101010101010100000001010100000000000101010000000101010000000000010101000000010101000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"66","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010101010100000101010101010101010101010000010101010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010101010101010101010100000101010101010101010101010000010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101010101010101010101000001010101010101010101010100000101010101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"67","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"68","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010100000000000101010101010101010000000000010101010101010101000000000001010100000000000001010100000101010000000000000101010000010101000000000000010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000010101000001010100000000000001010100000101010000000000000101010000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"69","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010101010101010101010100000101010101010101010101010000010101010101010101010101000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"70","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010101010101010101010100000101010101010101010101010000010101010101010101010101000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"71","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000010101010101010100000000000001010101010101010000000000000101010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"72","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"73","map":{"@width":"9","@height":"32","@type":"BINARY","$":"010101010101010101010101010101010101010101010101010101000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000000000010101000000010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"74","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101000000000001010100000001010100000000000101010000000101010000000000010101000000000000010101010101010100000000000001010101010101010000000000000101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"75","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000001010100000101010000000000000101010000010101010101010101010101000001010101010101010101010100000101010101010101010101010000010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"76","map":{"@width":"12","@height":"32","@type":"BINARY","$":"010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"77","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010100000001010101010101010101010000000101010101010101010101000000010101010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"78","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010100000000000101010101010101010000000000010101010101010101000000000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000000000010101010101010100000000000001010101010101010000000000000101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"79","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"80","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010101010100000101010101010101010101010000010101010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010101010101010101010100000101010101010101010101010000010101010101010101010101000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"81","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000"}},{"@chr":"82","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010101010100000101010101010101010101010000010101010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010101010101010101010100000101010101010101010101010000010101010101010101010101000001010100000000000001010100000101010000000000000101010000010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"83","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000001010101010101010100000000000101010101010101010000000000010101010101010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000000000001010101010101010100000000000101010101010101010000000000010101010101010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101010101010101010101000001010101010101010101010100000101010101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"84","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"85","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"86","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101000000010101000000000001010100000001010100000000000101010000000101010000000000010101000000010101000000000001010100000001010100000000000101010000000101010000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"87","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101000000010101000000010101000000000001010100000001010100000000000101010000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"88","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010100000001010100000001010100000000000101010000000101010000000000010101000000010101000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000001010100000001010100000000000101010000000101010000010101010101000000010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"89","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010100000001010100000001010100000000000101010000000101010000000000010101000000010101000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"90","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000001010100000000000000000000000101010000000000000000010101010101000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"91","map":{"@width":"6","@height":"32","@type":"BINARY","$":"010101010101010101010101010101010101010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"92","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"93","map":{"@width":"6","@height":"32","@type":"BINARY","$":"010101010101010101010101010101010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"94","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000001010100000000000000000000000101010000000000000000000000010101000000000000000001010100000001010100000000000101010000000101010000000000010101000000010101000001010100000000000000000101010101010000000000000000010101010101000000000000000001010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"95","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"97","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010100000000000101010101010101010000000000010101010101010101010101000000000000000000000001010100000000000000000000000101010000000000010101010101010101000000000001010101010101010100000000000101010101010101010000010101000000000000010101000001010100000000000001010100000101010000000000000101010000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"98","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010101010101010101010100000101010101010101010101010000010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101010101010101010101000001010101010101010101010100000101010101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"99","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010000000101010101010101010101010101010101010101010101010101010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"100","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000001010101010101010101010000000101010101010101010101010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"101","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010100000000000101010101010101010000010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"102","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000010101010101000000000000010101010101000000000000010101010101000000010101000000000000010101010101000000000000010101010101000000000000010101010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101010101010101000000010101010101010101000000010101010101010101000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"103","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010000000101010101010101010101010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101010101010101010101000001010101010101010101010100000101010101010101010101010000"}},{"@chr":"104","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010101010101010101010100000101010101010101010101010000010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"105","map":{"@width":"3","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000010101010101010101000000000000010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000"}},{"@chr":"106","map":{"@width":"6","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000010101000000010101000000000000000000000000000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101010101010101010101010101010101010101"}},{"@chr":"107","map":{"@width":"14","@height":"32","@type":"BINARY","$":"01010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000001010100000101010000000000000101010000010101000000000000010101000001010100000000000001010100000101010000000000000101010000010101010101010101000000000001010101010101010100000000000101010101010101010000000000010101000000000000010101000001010100000000000001010100000101010000000000000101010000010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"108","map":{"@width":"6","@height":"32","@type":"BINARY","$":"010101010101010101010101010101010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000010101000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"109","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010100000101010101010101010101010000010101010101010101010101010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"110","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010100000101010101010101010101010000010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"111","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010100000000000101010101010101010000010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"112","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010100000101010101010101010101010000010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101010101010101010101000001010101010101010101010100000101010101010101010101010000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000"}},{"@chr":"113","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010000000101010101010101010101010101010101010101010101010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101"}},{"@chr":"114","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101000000010101010101010101000000010101010101010101010101010101010101010101010101000000000000010101010101000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"115","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010000000101010101010101010101010101010101010101010101010101010100000000000000000000000101010000000000000000000000000000010101010101010101000000000001010101010101010100000000000101010101010101010000000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101010101010101010101000001010101010101010101010100000101010101010101010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"116","map":{"@width":"12","@height":"32","@type":"BINARY","$":"000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000010101010101010101010101010101010101010101010101010101010101010101010101000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"117","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"118","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101000000010101000000000001010100000001010100000000000101010000000101010000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"119","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101010101000000010101000001010101010100000001010100000101010101010000000101010000010101000000010101000000010101000000000001010100000001010100000000000101010000000101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"120","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000000000000000101010101010000000000000000010101010101010101000000010101010100000001010100000001010100000000000101010000000101010000000000000000010101000000000000000000000001010100000000000000000000000101010000000000000000010101000000010101000000000001010100000001010100000000000101010000000101010000010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"121","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101010101000000000000000001010101010100000000000000000101010101010000000000000000010101000000010101010101010101010100000001010101010101010101010000000101010101010101010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101010101010101010101000001010101010101010101010100000101010101010101010101010000"}},{"@chr":"122","map":{"@width":"14","@height":"32","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000000000000000101010000000000000000000000010101000000010101010101010101000000000001010101010101010100000000000101010101010101010000010101000000000000000000000001010100000000000000000000000101010000000000000000000000010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"124","map":{"@width":"3","@height":"32","@type":"BINARY","$":"010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000000000000000000000000000000000000"}}]}}}'),
+        minecraft: this.Font('minecraft', '{"font":{"glyphs":{"glyph":[{"@chr":"8217","map":{"@width":"4","@height":"16","@type":"BINARY","$":"00000101000001010000010100000101010100000101000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"8221","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000010100000101000001010000010100000101000001010000010100000101010100000101000001010000010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"32","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"33","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0101010101010101010101010101010101010101000000000101010100000000"}},{"@chr":"35","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101000001010000000001010000010100000000010100000101000000000101000001010000010101010101010101010101010101010101010100000101000001010000000001010000010100000101010101010101010101010101010101010101000001010000010100000000010100000101000000000101000001010000000001010000010100000000000000000000000000000000000000000000"}},{"@chr":"163","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000010101010101000000000101010101010000010100000000000000000101000000000000000001010000000000000000010100000000000001010101010101010000010101010101010100000000010100000000000000000101000000000000000001010000000000000000010100000000000001010101010101010101010101010101010101010000000000000000000000000000000000000000"}},{"@chr":"36","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000010100000000000000000101000000000000010101010101010100000101010101010101010100000000000000000101000000000000000000000101010101010000000001010101010100000000000000000000010100000000000000000101010101010101010100000101010101010101000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"37","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101000000000101000001010000000001010000000000000000010100000000000000000101000000000000010100000000000000000101000000000000010100000000000000000101000000000000000001010000000001010000010100000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"38","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000010100000000000000000101000000000000010100000101000000000101000001010000000000000101000000000000000001010000000000000101010100000101000001010101000001010101000001010101000001010000010101010000010100000000010100000101000000000101000000000101010100000101000001010101000001010000000000000000000000000000000000000000"}},{"@chr":"40","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000001010101000000000101010100000101000000000000010100000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000000001010000000000000101000000000000000001010101000000000101010100000000000000000000000000000000"}},{"@chr":"41","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0101010100000000010101010000000000000000010100000000000001010000000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000101000000000000010100000101010100000000010101010000000000000000000000000000000000000000"}},{"@chr":"42","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0101000000000101010100000000010100000101010100000000010101010000010100000000010101010000000001010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"43","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000101000000000000000001010000000000000000010100000000000000000101000000000101010101010101010101010101010101010101000000000101000000000000000001010000000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"44","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000010101010101010101010101"}},{"@chr":"45","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000101010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"46","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000010101010101010100000000"}},{"@chr":"47","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000101000000000000000001010000000000000101000000000000000001010000000000000000010100000000000000000101000000000000010100000000000000000101000000000000010100000000000000000101000000000000000001010000000000000000010100000000000001010000000000000000010100000000000000000000000000000000000000000000000000000000"}},{"@chr":"48","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101010100000000010101010101000000000101010101010000010100000101010100000101000001010101010100000000010101010101000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"49","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000010100000000000000000101000000000000010101010000000000000101010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000001010101010101010101010101010101010101010000000000000000000000000000000000000000"}},{"@chr":"50","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101000000000000000001010000000000000000010100000000010101010000000000000101010100000000010100000000000000000101000000000000010100000000000000000101000000000000000001010101010101010101010101010101010101010000000000000000000000000000000000000000"}},{"@chr":"51","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101000000000000000001010000000000000000010100000000010101010000000000000101010100000000000000000000010100000000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"52","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000001010101000000000000010101010000000001010000010100000000010100000101000001010000000001010000010100000000010101010000000000000101010100000000000001010101010101010101010101010101010101010101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000000000000000000000000000"}},{"@chr":"53","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010101010101010101010101010101000000000000000001010000000000000000010101010101010100000101010101010101000000000000000000000101000000000000000001010000000000000000010100000000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"54","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000010101010000000000000101010100000000010100000000000000000101000000000000010100000000000000000101000000000000000001010101010101010000010101010101010100000101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"55","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010101010101010101010101010101000000000000010101010000000000000101000000000000000001010000000000000000010100000000000001010000000000000000010100000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"56","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"57","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010101000001010101010101010000000000000000010100000000000000000101000000000000010100000000000000000101000000000101010100000000000001010101000000000000000000000000000000000000000000000000"}},{"@chr":"58","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0000000001010101010101010000000000000000010101010101010100000000"}},{"@chr":"59","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0000000001010101010101010000000000000000010101010101010101010101"}},{"@chr":"60","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000101000000000000010100000000010100000000000001010000000001010000000000000101000000000101000000000000010100000000000000000101000000000000010100000000000000000101000000000000010100000000000000000101000000000000010100000000000000000000000000000000"}},{"@chr":"61","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010100000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010100000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"63","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101000000000000000001010000000000000000010100000000000001010000000000000000010100000000000001010000000000000000010100000000000000000000000000000000000000000000000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"64","map":{"@width":"12","@height":"16","@type":"BINARY","$":"000001010101010101010000000001010101010101010000010100000000000000000101010100000000000000000101010100000101010100000101010100000101010100000101010100000101010100000101010100000101010100000101010100000101010101010101010100000101010101010101010100000000000000000000010100000000000000000000000001010101010101010101000001010101010101010101000000000000000000000000000000000000000000000000"}},{"@chr":"65","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101010101010101010101010101010101010101010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"66","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010000010101010101010100000101000000000000010101010000000000000101010101010101010100000101010101010101000001010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010101010101010000010101010101010100000000000000000000000000000000000000000000"}},{"@chr":"67","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"68","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010000010101010101010100000101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010101010101010000010101010101010100000000000000000000000000000000000000000000"}},{"@chr":"69","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010101010101010101010101010101000000000000000001010000000000000000010101010101000000000101010101010000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010101010101010101010101010101010101010000000000000000000000000000000000000000"}},{"@chr":"70","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010101010101010101010101010101000000000000000001010000000000000000010101010101000000000101010101010000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000000000000000000000000000000000000000000"}},{"@chr":"71","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010101000001010101010101010101000000000000000001010000000000000000010100000101010101010101000001010101010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"72","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101000000000000010101010000000000000101010101010101010101010101010101010101010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"73","map":{"@width":"6","@height":"16","@type":"BINARY","$":"010101010101010101010101000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000010101010101010101010101000000000000000000000000"}},{"@chr":"74","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"75","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101000000000101000001010000000001010000010101010101000000000101010101010000000001010000000001010000010100000000010100000101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"76","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010101010101010101010101010101010101010000000000000000000000000000000000000000"}},{"@chr":"77","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101010100000101010101010101000001010101010100000101000001010101000001010000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"78","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101010100000000010101010101000000000101010100000101000001010101000001010000010101010000000001010101010100000000010101010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"79","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"80","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010000010101010101010100000101000000000000010101010000000000000101010101010101010100000101010101010101000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000000000000000000000000000000000000000000"}},{"@chr":"81","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010000000001010101010100000101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000010100000101000000000101000000000101010100000101000001010101000001010000000000000000000000000000000000000000"}},{"@chr":"82","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010000010101010101010100000101000000000000010101010000000000000101010101010101010100000101010101010101000001010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"83","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000101010101010101000001010101010101010101000000000000000001010000000000000000000001010101010100000000010101010101000000000000000000000101000000000000000001010000000000000000010100000000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"84","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010101010101010101010101010000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"85","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"86","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000010100000101000000000101000001010000000001010000010100000000010100000101000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"87","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000001010000010101010000010100000101010101010000010101010101010100000101010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"88","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010000010100000101000000000101000001010000000000000101000000000000000001010000000000000101000001010000000001010000010100000101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"89","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000101010100000000000001010000010100000101000000000101000001010000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"90","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010101010101010101010101010101010101010000000000000000010100000000000000000101000000000000010100000000000000000101000000000000010100000000000000000101000000000000010100000000000000000101000000000000010100000000000000000101000000000000000001010101010101010101010101010101010101010000000000000000000000000000000000000000"}},{"@chr":"91","map":{"@width":"6","@height":"16","@type":"BINARY","$":"010101010101010101010101010100000000010100000000010100000000010100000000010100000000010100000000010100000000010100000000010100000000010100000000010101010101010101010101000000000000000000000000"}},{"@chr":"92","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000000010100000000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000000010100000000000000000101000000000000000000000101000000000000000001010000000000000000010100000000000000000101000000000000000000000101000000000000000001010000000000000000000000000000000000000000"}},{"@chr":"93","map":{"@width":"6","@height":"16","@type":"BINARY","$":"010101010101010101010101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101010101010101010101010101000000000000000000000000"}},{"@chr":"94","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000010100000000000000000101000000000000010100000101000000000101000001010000010100000000000001010101000000000000010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"95","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000101010101010101010101010101010101010101"}},{"@chr":"97","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010100000000010101010101000000000000000000000101000000000000000001010000010101010101010100000101010101010101010100000000000001010101000000000000010100000101010101010101000001010101010101010000000000000000000000000000000000000000"}},{"@chr":"98","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000000010100000000000000000101000000000000000001010000000000000000010100000101010100000101000001010101000001010101000000000101010101010000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010101010101010000010101010101010100000000000000000000000000000000000000000000"}},{"@chr":"99","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010100000000010101010101000001010000000000000101010100000000000001010101000000000000000001010000000000000000010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"100","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000101000000000000000001010000000000000000010100000000000000000101000001010101000001010000010101010000010101010000000001010101010100000000010101010101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010101000001010101010101010000000000000000000000000000000000000000"}},{"@chr":"101","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010100000000010101010101000001010000000000000101010100000000000001010101010101010101010101010101010101010101010100000000000000000101000000000000000000000101010101010101000001010101010101010000000000000000000000000000000000000000"}},{"@chr":"102","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000001010101000000000101010100000101000000000000010100000000010101010101010101010101010101010000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"103","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010000010101010101010101010000000000000101010100000000000001010101000000000000010101010000000000000101000001010101010101010000010101010101010100000000000000000101000000000000000001010101010101010101000001010101010101010000"}},{"@chr":"104","map":{"@width":"10","@height":"16","@type":"BINARY","$":"01010000000000000000010100000000000000000101000000000000000001010000000000000000010100000101010100000101000001010101000001010101000000000101010101010000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"105","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0101010100000000010101010101010101010101010101010101010100000000"}},{"@chr":"106","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000101000000000000000001010000000000000000000000000000000000000000000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000010101010101000000000101010101010000"}},{"@chr":"107","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0101000000000000010100000000000001010000000000000101000000000000010100000000010101010000000001010101000001010000010100000101000001010101000000000101010100000000010100000101000001010000010100000101000000000101010100000000010100000000000000000000000000000000"}},{"@chr":"108","map":{"@width":"4","@height":"16","@type":"BINARY","$":"01010000010100000101000001010000010100000101000001010000010100000101000001010000010100000101000000000101000001010000000000000000"}},{"@chr":"109","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010101010000010100000101010100000101000001010000010100000101010100000101000001010101000001010000010101010000010100000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"110","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010100000101010101010101000001010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"111","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010100000000010101010101000001010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010000000001010101010100000000000000000000000000000000000000000000"}},{"@chr":"112","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010100000101010100000101000001010101000001010101000000000101010101010000000001010101000000000000010101010000000000000101010101010101010100000101010101010101000001010000000000000000010100000000000000000101000000000000000001010000000000000000"}},{"@chr":"113","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101000001010000010101010000010101010000000001010101010100000000010101010101000000000000010101010000000000000101000001010101010101010000010101010101010100000000000000000101000000000000000001010000000000000000010100000000000000000101"}},{"@chr":"114","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010100000101010100000101000001010101000001010101000000000101010101010000000001010101000000000000000001010000000000000000010100000000000000000101000000000000000001010000000000000000010100000000000000000000000000000000000000000000000000000000"}},{"@chr":"115","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000001010101010101010000010101010101010101010000000000000000010100000000000000000000010101010101000000000101010101010000000000000000000001010000000000000000010101010101010101010000010101010101010100000000000000000000000000000000000000000000"}},{"@chr":"116","map":{"@width":"6","@height":"16","@type":"BINARY","$":"000001010000000001010000010101010101010101010101000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000000000101000000000101000000000000000000000000"}},{"@chr":"117","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010100000101010101010101000001010101010101010000000000000000000000000000000000000000"}},{"@chr":"118","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101000001010000010100000000010100000101000000000000010100000000000000000101000000000000000000000000000000000000000000000000"}},{"@chr":"119","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000000001010101000000000000010101010000000000000101010100000000000001010101000001010000010101010000010100000101010100000101000001010101000001010000010100000101010101010101000001010101010101010000000000000000000000000000000000000000"}},{"@chr":"120","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000000001010101000000000000010100000101000001010000000001010000010100000000000001010000000000000000010100000000000001010000010100000000010100000101000001010000000000000101010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"121","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010100000000000001010101000000000000010101010000000000000101010100000000000001010101000000000000010101010000000000000101000001010101010101010000010101010101010100000000000000000101000000000000000001010101010101010101000001010101010101010000"}},{"@chr":"122","map":{"@width":"10","@height":"16","@type":"BINARY","$":"00000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101010100000000000001010000000000000000010100000000000001010000000000000000010100000000000001010000000000000000010100000000000001010101010101010101010101010101010101010000000000000000000000000000000000000000"}},{"@chr":"124","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0101010101010101010101010101010101010101010101010101010101010101"}}]}}}'),
+        minecraftia: this.Font('minecraftia', '{"font":{"glyphs":{"glyph":[{"@chr":"34","map":{"@width":"3","@height":"8","@type":"BINARY","$":"010001010001000000000000000000000000000000000000"}},{"@chr":"35","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001000100010001010101010001000101010101000100010001000100000000"}},{"@chr":"32","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"33","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0101010101000100"}},{"@chr":"38","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010000010001000001000001010101000101010000010001010100000000"}},{"@chr":"39","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0101000000000000"}},{"@chr":"36","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010000010101010000000001010100000001010101010000010000000000"}},{"@chr":"37","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101000001000000010000010000010000000100010100000100000000"}},{"@chr":"163","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010100010000000100000101010100010000000100000101010100000000"}},{"@chr":"42","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000100010100010000010000000000000000000000000000000000000000"}},{"@chr":"43","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000001000000010001010101000001000000010000000000"}},{"@chr":"40","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010100010000010000000100000001000000000100000000010100000000"}},{"@chr":"41","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101000000000100000000010000000100000001000001000101000000000000"}},{"@chr":"46","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0000000000010100"}},{"@chr":"47","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000100000001000000010000010000010000000100000100000000000000"}},{"@chr":"44","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0000000000010101"}},{"@chr":"45","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000000000000000001010101000000000000000000000000"}},{"@chr":"51","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001000000010000010100000001010000010001010100000000"}},{"@chr":"50","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001000000010000010100010000010000000101010100000000"}},{"@chr":"49","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010000010100000001000000010000000100000001000101010100000000"}},{"@chr":"48","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001010000010100010101010001010000010001010100000000"}},{"@chr":"55","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000001000000010000000100000100000001000000010000000000"}},{"@chr":"54","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010100010000010000000101010101000001010000010001010100000000"}},{"@chr":"53","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000000010101010000000100000001010000010001010100000000"}},{"@chr":"52","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000100000101000100010100000101010101000000010000000100000000"}},{"@chr":"59","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0001010000010101"}},{"@chr":"58","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0001010000010100"}},{"@chr":"57","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001010000010001010100000001000000010001010000000000"}},{"@chr":"56","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001010000010001010101000001010000010001010100000000"}},{"@chr":"62","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000000010000000001000000000100000100000100000100000000000000"}},{"@chr":"61","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010101010000000000000000010101010000000000000000"}},{"@chr":"60","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000100000100000100000100000000010000000001000000000100000000"}},{"@chr":"68","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000001010000010100000101000001010000010101010100000000"}},{"@chr":"69","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000000010101000100000001000000010000000101010100000000"}},{"@chr":"70","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000000010101000100000001000000010000000100000000000000"}},{"@chr":"71","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000000010001010100000101000001010000010001010100000000"}},{"@chr":"64","map":{"@width":"5","@height":"8","@type":"BINARY","$":"00010101000100000001010001010101000101010100010101010000000000010101010000000000"}},{"@chr":"65","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001010101010100000101000001010000010100000100000000"}},{"@chr":"66","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000001010101010100000101000001010000010101010100000000"}},{"@chr":"67","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001010000000100000001000000010000010001010100000000"}},{"@chr":"76","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000001000000010000000100000001000000010000000101010100000000"}},{"@chr":"77","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101010001010001010100000101000001010000010100000100000000"}},{"@chr":"78","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101010001010001010100000101000001010000010100000100000000"}},{"@chr":"79","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001010000010100000101000001010000010001010100000000"}},{"@chr":"72","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101000001010101010100000101000001010000010100000100000000"}},{"@chr":"73","map":{"@width":"3","@height":"8","@type":"BINARY","$":"010101000100000100000100000100000100010101000000"}},{"@chr":"74","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000100000001000000010000000100000001010000010001010100000000"}},{"@chr":"75","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101000001010101000100000101000001010000010100000100000000"}},{"@chr":"85","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101000001010000010100000101000001010000010001010100000000"}},{"@chr":"84","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010100000100000001000000010000000100000001000000010000000000"}},{"@chr":"87","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101000001010000010100000101000101010100010100000100000000"}},{"@chr":"86","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000101000001010000010100000100010001000100010000010000000000"}},{"@chr":"81","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000001010000010100000101000001010000010001010100000000"}},{"@chr":"80","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000001010101010100000001000000010000000100000000000000"}},{"@chr":"83","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0001010101000000000101010000000100000001010000010001010100000000"}},{"@chr":"82","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010101000001010101010100000101000001010000010100000100000000"}},{"@chr":"93","map":{"@width":"3","@height":"8","@type":"BINARY","$":"010101000001000001000001000001000001010101000000"}},{"@chr":"92","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000000010000000100000000010000000001000000010000000100000000"}},{"@chr":"95","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000000001010101"}},{"@chr":"94","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010000010001010000010000000000000000000000000000000000000000"}},{"@chr":"89","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000100010001000001000000010000000100000001000000010000000000"}},{"@chr":"88","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000100010001000001000001000101000001010000010100000100000000"}},{"@chr":"91","map":{"@width":"3","@height":"8","@type":"BINARY","$":"010101010000010000010000010000010000010101000000"}},{"@chr":"90","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0101010100000001000000010000010000010000010000000101010100000000"}},{"@chr":"102","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000010100010000010101010001000000010000000100000001000000000000"}},{"@chr":"103","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000101010100000101000001000101010000000101010101"}},{"@chr":"100","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000100000001000101010100000101000001010000010001010100000000"}},{"@chr":"101","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000101010100000101010101010000000001010100000000"}},{"@chr":"98","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000001000000010001010101000101000001010000010101010100000000"}},{"@chr":"99","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000101010100000101000000010000010001010100000000"}},{"@chr":"97","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000101010000000100010101010000010001010100000000"}},{"@chr":"110","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010101010100000101000001010000010100000100000000"}},{"@chr":"111","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000101010100000101000001010000010001010100000000"}},{"@chr":"108","map":{"@width":"2","@height":"8","@type":"BINARY","$":"01000100010001000100010000010000"}},{"@chr":"109","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010100010100010101000101010000010100000100000000"}},{"@chr":"106","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000100000000000000010000000100000001010000010100000100010101"}},{"@chr":"107","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000001000000010000010100010001010000010001000100000100000000"}},{"@chr":"104","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0100000001000000010001010101000101000001010000010100000100000000"}},{"@chr":"105","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0100010101010100"}},{"@chr":"119","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010000010100000101000101010001010001010100000000"}},{"@chr":"118","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010000010100000101000001000100010000010000000000"}},{"@chr":"117","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010000010100000101000001010000010001010100000000"}},{"@chr":"116","map":{"@width":"3","@height":"8","@type":"BINARY","$":"000100010101000100000100000100000100000001000000"}},{"@chr":"115","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000101010100000000010101000000010101010100000000"}},{"@chr":"114","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010001010101000101000000010000000100000000000000"}},{"@chr":"113","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000000101010100000101000001000101010000000100000001"}},{"@chr":"112","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010001010101000101000001010101010100000001000000"}},{"@chr":"124","map":{"@width":"1","@height":"8","@type":"BINARY","$":"0101010101010101"}},{"@chr":"122","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010101010000000100000100000100000101010100000000"}},{"@chr":"121","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010000010100000101000001000101010000000101010101"}},{"@chr":"120","map":{"@width":"4","@height":"8","@type":"BINARY","$":"0000000000000000010000010001000100000100000100010100000100000000"}}]}}}')
+    };
+    return {
+        getFont: function (name) {
+            // Checking the name:
+            if (name === undefined) {
+                return undefined;
+            }
+
+            // Checking the existence of the font:
+            if (fonts[name] === undefined) {
+                alert('TODO: Caricamento font');
+            }
+
+            // Here the font must be present:
+            if (fonts[name] === undefined) {
+                return undefined;
+            }
+
+            // Done:
+            return fonts[name];
+        },
+        // JQuery wrapper as parameter.
+        releaseGlyphs: function (glyphs) {
+            // Checking:
+            if (glyphs === undefined || glyphs.length <= 0) {
+                return;
+            }
+
+            // Iterating on the glyphs:
+            var manager = this;
+            glyphs.each(function (i, g) {
+                // Releasing the glyph:
+                g = $(g);
+                var font = manager.getFont(g.attr('font'));
+                if (font === undefined) {
+                    g.remove();
+                }
+                else {
+                    font.releaseGlyph(g);
+                }
+            });
+        }
+    };
 };

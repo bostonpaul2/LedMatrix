@@ -1,9 +1,3 @@
-#keyboardShow {
-    position: absolute;
-    top: -9999em;
-    left: -9999em;
-}
-
 #content {
     margin-top: 10px;
 }
@@ -82,7 +76,7 @@
 
 /* Blinking modes: */
 .blink-fixed { }
-.blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
+.blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
     -webkit-animation-timing-function: linear;
     -webkit-animation-iteration-count: infinite;
     -moz-animation-timing-function: linear;
@@ -91,21 +85,26 @@
     animation-iteration-count: infinite;
 }
 .blink-sim_slow {
-    -webkit-animation-duration: 1s;
-    -moz-animation-duration: 1s;
-    animation-duration: 1s;
+    -webkit-animation-duration: 0.8s;
+    -moz-animation-duration: 0.8s;
+    animation-duration: 0.8s;
 }
 .blink-sim_medium {
-    -webkit-animation-duration: 0.5s;
-    -moz-animation-duration: 0.5s;
-    animation-duration: 0.5s;
+    -webkit-animation-duration: 0.55s;
+    -moz-animation-duration: 0.55s;
+    animation-duration: 0.55s;
 }
 .blink-sim_fast {
-    -webkit-animation-duration: 0.25s;
-    -moz-animation-duration: 0.25s;
-    animation-duration: 0.25s;
+    -webkit-animation-duration: 0.35s;
+    -moz-animation-duration: 0.35s;
+    animation-duration: 0.35s;
 }
-.blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
+.blink-sim_very_fast {
+    -webkit-animation-duration: 0.2s;
+    -moz-animation-duration: 0.2s;
+    animation-duration: 0.2s;
+}
+.blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
     -webkit-animation-name: blinker;
     -moz-animation-name: blinker;
     animation-name: blinker;

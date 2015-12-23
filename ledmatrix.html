@@ -7,20 +7,14 @@
     <script src="js/d3.min.js"></script>
     <script src="js/mousetrap.min.js"></script>
     <script src="js/LedMatrix.js"></script>
-    <script src="js/FontManager.js"></script>
-    <script src="js/Editor.js"></script>
-    <script src="js/SVG.js"></script>
     <title>LedMatrix</title>
 </head>
 
 <body>
-<input id="keyboardShow" type="text">
 <div id="content">
     <div id="ledMatrix1" class="ledMatrix"></div>
     <script>
         matrix = new LedMatrix("ledMatrix1", {horPixel: 96, verPixel: 160, pixelSize: 5});
-        editor(matrix);
-        setLedDimension(matrix.options.pixelSize, matrix.options.offsetSize, matrix.options.totPixelSize, matrix.size, matrix.selectedFont);
     </script>
 
     <div id="buttons">
@@ -76,7 +70,7 @@
             Select Blink off
         </button>
         <button id="selectBlink2" class="buttonTools" onclick="matrix.selectBlink('blink-sim_slow');">
-             Select Blink Slow
+            Select Blink Slow
         </button>
         <button id="selectBlink3" class="buttonTools" onclick="matrix.selectBlink('blink-sim_medium');">
             Select Blink Medium
@@ -84,7 +78,11 @@
         <button id="selectBlink4" class="buttonTools" onclick="matrix.selectBlink('blink-sim_fast');">
             Select Blink Fast
         </button>
-        <button id="pageDuration" class="buttonTools" onclick="matrix.pageDuration(document.getElementById('sec').value);">
+        <button id="selectBlink5" class="buttonTools" onclick="matrix.selectBlink('blink-sim_very_fast');">
+            Select Blink Very Fast
+        </button>
+        <button id="pageDuration" class="buttonTools"
+                onclick="matrix.pageDuration(document.getElementById('sec').value);">
             Set Page Duration
         </button>
         <input type="text" id="sec">
