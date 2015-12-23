@@ -555,7 +555,7 @@ function editor(matrix) {
                     if (data.message.length != 0) {
 
                         // insert all the rows in the array
-                        for (i = 0; i < data.message.length; i++) {
+                        for (i = data.message.length - 1; i >= 0; i--) {
                             p = $(chars[i]);
                             charY = parseFloat(p.attr("dy"));
 
@@ -615,7 +615,7 @@ function editor(matrix) {
                     if (data.message.length != 0) {
 
                         // insert all the rows in the array
-                        for (i = 0; i < data.message.length; i++) {
+                        for (i = data.message.length - 1; i >= 0; i--) {
                             p = $(chars[i]);
                             charY = parseFloat(p.attr("dy"));
 

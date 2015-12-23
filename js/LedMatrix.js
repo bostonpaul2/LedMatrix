@@ -458,7 +458,7 @@ LedMatrix = function (elemid, options) {
                     parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
-                $('.displayArea').append(Line(data.cursorCurrXPos, data.cursorCurrYPos, data.cursorCurrXPos, h, self.options.offsetSize * 2, "cursor"));
+                $('.displayArea').append(Line(data.cursorCurrXPos -  self.options.offsetSize/2, data.cursorCurrYPos, data.cursorCurrXPos -  self.options.offsetSize/2, h, self.options.offsetSize * 2, "cursor"));
 
                 if (self.cursorBlinkTimer == null) {
                     // init the cursor blinking timer
@@ -492,7 +492,7 @@ LedMatrix = function (elemid, options) {
                     parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
-                $('.displayArea').append(Line(data.cursorCurrXPos + self.options.offsetSize, data.cursorCurrYPos, data.cursorCurrXPos + self.options.offsetSize, h, self.options.offsetSize * 2, "cursor"));
+                $('.displayArea').append(Line(data.cursorCurrXPos -  self.options.offsetSize * 2, data.cursorCurrYPos, data.cursorCurrXPos -  self.options.offsetSize * 2, h, self.options.offsetSize * 2, "cursor"));
 
                 if (self.cursorBlinkTimer == null) {
                     // init the cursor blinking timer
@@ -669,7 +669,13 @@ LedMatrix = function (elemid, options) {
     };
 
     this.pageDuration = function(seconds){
-        console.log(seconds);
+        var w = self.displayArea.select(".selectedWindow", ".page");
+        if (!w.empty()) {
+            var data = w.datum();
+
+            data.duration = parseInt(seconds);
+        }
+
     };
         // ------------- Do Stuff -------------
     // init some data
@@ -728,15 +734,19 @@ LedMatrix = function (elemid, options) {
     // ------------- Private Tools -------------
     // mark the window as selectedWindow and unselect all the other
     function manageSelection() {
-        if (d3.select(this).classed("selectedWindow")) {
-            d3.select(this).classed('selectedWindow', false);
-        } else {
-            deselectAllWindows();
-            d3.select(this).classed('selectedWindow', true);
-        }
+        if (self.displayArea.select(".textEdit").empty()) {
 
-        d3.event.preventDefault();
-        d3.event.stopPropagation();
+            if (d3.select(this).classed("selectedWindow")) {
+                d3.select(this).classed('selectedWindow', false);
+            } else {
+                deselectAllWindows();
+                d3.select(this).classed('selectedWindow', true);
+            }
+
+            d3.event.preventDefault();
+            d3.event.stopPropagation();
+
+        }
     }
 
     // deselect all windows
@@ -800,7 +810,7 @@ LedMatrix = function (elemid, options) {
         row[j] = [];
 
         if (data.message.length != 0) {
-            for (i = 0; i < data.message.length; i++) {
+            for (i = data.message.length - 1; i >= 0; i--) {
                 var p = $(parent[i]);
                 var charY = parseFloat(p.attr("dy"));
 

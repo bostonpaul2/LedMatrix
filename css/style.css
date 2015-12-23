@@ -1,3 +1,9 @@
+#keyboardShow {
+    position: absolute;
+    top: -9999em;
+    left: -9999em;
+}
+
 #content {
     margin-top: 10px;
 }
@@ -55,7 +61,7 @@
 }
 
 .cursor {
-    stroke: red;
+    stroke: #cc262d;
 }
 
 .gridLine {
