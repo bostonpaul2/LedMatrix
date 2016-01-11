@@ -492,7 +492,7 @@ LedMatrix = function (elemid, options) {
                     parent.attr("height", h - parseFloat(parent.attr("y")));
                 }
 
-                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize * 2, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize * 2, h, self.options.offsetSize * 2, "cursor"));
+                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize, h, self.options.offsetSize * 2, "cursor"));
 
                 if (self.cursorBlinkTimer == null) {
                     // init the cursor blinking timer
@@ -695,16 +695,30 @@ LedMatrix = function (elemid, options) {
         height: this.options.verPixel * this.options.pixelSize + (this.options.verPixel + 1) * this.options.offsetSize
     };
 
+    // create the container
+    var border = this.size.width * (0.03);
+    this.container = d3.select(this.matrix).append("svg")
+        .attr("width", this.size.width + border)
+        .attr("height", this.size.height + border)
+        .attr("class", "drawable-area");
+
     // create the display
-    this.displayArea = d3.select(this.matrix).append("svg")
+    this.displayArea = this.container.append("svg")
         .attr("width", this.size.width)
         .attr("height", this.size.height)
+        .attr("x", border/2)
+        .attr("y", border/2)
         .attr("class", "displayArea");
 
     var gGrid = this.SVG("g")
         .attr("class", "background-grid");
 
     this.displayArea.grid = $(".displayArea").append(gGrid);
+
+    var rect = d3.select(".background-grid").append("rect")
+        .attr("width", this.size.width)
+        .attr("height", this.size.height)
+        .attr("class", "background-display");
 
     // init data for ledGrid
     for (var y = this.options.offsetSize / 2; y <= this.size.height; y += this.options.totPixelSize) {

@@ -7,9 +7,12 @@
     margin-left: 30px;
 }
 
-.displayArea {
-    background: black;
-    border: solid 2px #333333;
+.drawable-area {
+    background: #333333;
+}
+
+.background-display {
+    fill: black;
 }
 
 #buttons {
