@@ -4,14 +4,16 @@
 LedMatrix = function (elemid, options) {
     // ------------- Public Tools -------------
     // add an editable windows
-    this.addWindow = function () {
-        if (self.displayArea.select(".selectedWindow").empty() && self.displayArea.select(".editingWindow").empty()) {
+    this.addWindow = function (type) {
+        if (self.displayArea.select(".textEdit").empty() && self.displayArea.select(".editingWindow").empty()) {
+            // deselect all windows
+            d3.selectAll(".selectedWindow").classed('selectedWindow', false);
+
             // remove the listener for deselection
             disableDeselectAll();
 
             // stop preview mode
             stopAnimation();
-
 
             // create a new brush inside the displayArea
             var brush = d3.svg.brush()
@@ -22,6 +24,9 @@ LedMatrix = function (elemid, options) {
             self.displayArea.append("g")
                 .attr("class", "editingWindow")
                 .call(brush);
+
+            self.displayArea.select("rect.extent")
+                .classed(type, true);
 
             // function that snap to grid the drawn area
             function brushed() {
@@ -210,6 +215,10 @@ LedMatrix = function (elemid, options) {
 
             if (temp.datum() != 0) {
                 data[0] = temp.datum();
+            } else if (temp.classed("page")) {
+                data[0].type = "page";
+            } else if (temp.classed("scroll")) {
+                data[0].type = "scroll";
             }
 
             var svg = self.displayArea.append("svg")
@@ -229,7 +238,7 @@ LedMatrix = function (elemid, options) {
                 .attr("y", 0)
                 .attr("width", temp.attr("width"))
                 .attr("height", temp.attr("height"))
-                .on("click", manageSelection)
+                .on("click", manageClick)
                 .classed('textEdit', true);
 
             // save the window reference in the model
@@ -238,11 +247,16 @@ LedMatrix = function (elemid, options) {
             // add the listener for deselection
             enableDeselectAll();
 
+            if (data[0].type == "page") {
+                w.classed(data[0].type, true);
+            } else if (data[0].type == "scroll") {
+                w.classed(data[0].type, true);
+            }
+
             if (data[0].pages[data[0].selectedPage].message.length != 0) {
                 var edit = $(".textEdit");
                 // if is a paged message
                 if (data[0].type == "page") {
-                    w.classed(data[0].type, true);
                     for (var i = 0; i < data[0].pages.length; i++) {
                         writePageText(data[0].pages[i], edit.parent());
                     }
@@ -250,14 +264,13 @@ LedMatrix = function (elemid, options) {
                 }
                 // if is a paged message
                 else if (data[0].type == "scroll") {
-                    w.classed(data[0].type, true);
                     data[0].preview = 0;
                     writeAllScrollText(data[0].pages[data[0].selectedPage], edit.parent());
                 }
             }
 
             w.classed('textEdit', false)
-                .classed('selectedWindow', true);
+                .classed('selectedWindow', false);
 
         }
 
@@ -315,6 +328,10 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".selectedWindow").empty()) {
             // mark the selected window as textEdit
             var w = self.displayArea.select(".selectedWindow")
+                .on("click", function() {
+                    d3.event.preventDefault();
+                    d3.event.stopPropagation();
+                })
                 .classed('textEdit', true)
                 .classed('scroll', true);
 
@@ -354,9 +371,9 @@ LedMatrix = function (elemid, options) {
                 data.selectedPage = 0;
             }
 
-            edit.on("click", manageSelection)
+            edit.on("click", manageClick)
                 .classed('textEdit', false)
-                .classed('selectedWindow', true);
+                .classed('selectedWindow', false);
 
             // turn off the cursor
             self.cursorOff();
@@ -706,8 +723,8 @@ LedMatrix = function (elemid, options) {
     this.displayArea = this.container.append("svg")
         .attr("width", this.size.width)
         .attr("height", this.size.height)
-        .attr("x", border/2)
-        .attr("y", border/2)
+        .attr("x", border / 2)
+        .attr("y", border / 2)
         .attr("class", "displayArea");
 
     var gGrid = this.SVG("g")
@@ -745,22 +762,43 @@ LedMatrix = function (elemid, options) {
     // init preview stuff
     this.previewTimer = null;
 
+    // init click stuff
+    this.lastClickTime = 0;
+
     // ------------- Private Tools -------------
     // mark the window as selectedWindow and unselect all the other
-    function manageSelection() {
-        if (self.displayArea.select(".textEdit").empty()) {
+    function manageClick() {
+        var now = new Date().getTime();
+        var dClick = false;
+        if (now - self.lastClickTime < 500) {
+            dClick = true;
+        }
 
-            if (d3.select(this).classed("selectedWindow")) {
-                d3.select(this).classed('selectedWindow', false);
-            } else {
-                deselectAllWindows();
-                d3.select(this).classed('selectedWindow', true);
-            }
+        if (self.displayArea.select(".textEdit").empty()) {
 
             d3.event.preventDefault();
             d3.event.stopPropagation();
 
+            if (dClick) {
+                deselectAllWindows();
+                d3.select(this).classed('selectedWindow', true);
+                if (d3.select(this).classed("page")) {
+                    self.insertPageMessage();
+                } else {
+                    self.insertScrollMessage();
+                }
+            } else {
+                if (d3.select(this).classed("selectedWindow")) {
+                    d3.select(this).classed('selectedWindow', false);
+                } else {
+                    deselectAllWindows();
+                    d3.select(this).classed('selectedWindow', true);
+                }
+            }
         }
+
+        self.lastClickTime = now;
+
     }
 
     // deselect all windows
@@ -1377,7 +1415,7 @@ LedMatrix = function (elemid, options) {
                     data.font.splice(data.cursorIndex - 1, 1);
 
                     //insert new blink type at cursor pos
-                    data.blinking.splice(data.cursorIndex- 1, 1);
+                    data.blinking.splice(data.cursorIndex - 1, 1);
 
                     // inc cursor index
                     data.cursorIndex--;
@@ -2010,11 +2048,10 @@ LedMatrix.prototype.Led = function (x, y, size) {
             return size;
         },
         createSvg: function () {
-            return self.SVG('rect')
-                .attr('x', x)
-                .attr('y', y)
-                .attr('width', size)
-                .attr('height', size)
+            return self.SVG('circle')
+                .attr('cx', x + size / 2)
+                .attr('cy', y + size / 2)
+                .attr('r', size / 2)
                 .attr('class', "led");
         }
     };

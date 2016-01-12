@@ -18,8 +18,11 @@
     </script>
 
     <div id="buttons">
-        <button id="addWindow" class="buttonTools" onclick="matrix.addWindow();">
-            Add Window
+        <button id="addWindowPage" class="buttonTools" onclick="matrix.addWindow('page');">
+            Add Page Message
+        </button>
+        <button id="addWindowScroll" class="buttonTools" onclick="matrix.addWindow('scroll');">
+            Add Scroll Message
         </button>
         <button id="startEditWindow" class="buttonTools" onclick="matrix.startEditWindow();">
             Start Edit Window
@@ -29,9 +32,6 @@
         </button>
         <button id="removeWindow" class="buttonTools" onclick="matrix.removeSelectedWindow();">
             Remove Window
-        </button>
-        <button id="insertPageMessage" class="buttonTools" onclick="matrix.insertPageMessage();">
-            Insert Page Message
         </button>
         <button id="addPage" class="buttonTools" onclick="matrix.addPage();">
             Add Page
@@ -44,9 +44,6 @@
         </button>
         <button id="prevPage" class="buttonTools" onclick="matrix.prevPage();">
             Prev Page
-        </button>
-        <button id="insertScrollMessage" class="buttonTools" onclick="matrix.insertScrollMessage();">
-            Insert Scroll Message
         </button>
         <button id="speedUp" class="buttonTools" onclick="matrix.speedUp();">
             Speed Up
