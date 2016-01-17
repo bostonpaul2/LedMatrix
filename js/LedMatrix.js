@@ -1,5 +1,7 @@
 /**
  * Return a variable containing everything that is marked with this
+ * @param {string} elemid id of the svg element
+ * @param {object} options otional params like number of pixel, pixel size ecc.
  */
 LedMatrix = function (elemid, options) {
     // ------------- Public Tools -------------
@@ -15,11 +17,16 @@ LedMatrix = function (elemid, options) {
             // stop preview mode
             stopAnimation();
 
+            var stop = false;
+
             // create a new brush inside the displayArea
             var brush = d3.svg.brush()
                 .x(d3.scale.identity().domain([0, self.size.width]))
                 .y(d3.scale.identity().domain([0, self.size.height]))
-                .on("brushend", brushed);
+                .on("brushend", brushed)
+                .on("brushstart", function() {
+                    stop = stopEdit();
+                });
 
             self.displayArea.append("g")
                 .attr("class", "editingWindow")
@@ -41,6 +48,11 @@ LedMatrix = function (elemid, options) {
 
                 // applay snap
                 d3.select(this).transition()
+                    .each("end", function() {
+                        if (stop) {
+                            self.stopEditWindow();
+                        }
+                    })
                     .call(brush.extent(extent));
             }
 
@@ -77,11 +89,16 @@ LedMatrix = function (elemid, options) {
                 height: parseFloat(selected.attr("height")) + parseFloat(parent.attr("y"))
             };
 
+            var stop = false;
+
             // create a new brush inside the displayArea at the saved position
             var brush = d3.svg.brush()
                 .x(d3.scale.identity().domain([0, self.size.width]))
                 .y(d3.scale.identity().domain([0, self.size.height]))
                 .extent([[pos.x, pos.y], [pos.width, pos.height]])
+                .on("brushstart", function() {
+                    stop = stopEdit();
+                })
                 .on("brush", brushing)
                 .on("brushend", brushed);
 
@@ -139,9 +156,15 @@ LedMatrix = function (elemid, options) {
                 extent[1][0] = Math.max(p1 * Math.round(extent[1][0] / p1), extent[0][0] + p1 - self.options.offsetSize);
                 extent[1][1] = Math.max(p8 * Math.round(extent[1][1] / p8), extent[0][1] + p8 - self.options.offsetSize);
 
-                // applay snap
+                // apply snap
                 d3.select(this).transition()
+                    .each("end", function() {
+                        if (stop) {
+                            self.stopEditWindow();
+                        }
+                    })
                     .call(brush.extent(extent));
+
 
                 // append the data in the new window
                 self.displayArea.select("rect.extent")
@@ -213,7 +236,7 @@ LedMatrix = function (elemid, options) {
                 scrollSpeed: 0
             }];
 
-            if (temp.datum() != 0) {
+            if (temp.datum() !== 0) {
                 data[0] = temp.datum();
             } else if (temp.classed("page")) {
                 data[0].type = "page";
@@ -221,15 +244,18 @@ LedMatrix = function (elemid, options) {
                 data[0].type = "scroll";
             }
 
-            var svg = self.displayArea.append("svg")
+            var g = self.displayArea.append("g")
+                .attr("class", "windowGroup");
+
+            var svg = g.append("svg")
                 .attr("x", temp.attr("x"))
                 .attr("y", temp.attr("y"))
                 .attr("width", temp.attr("width"))
                 .attr("height", temp.attr("height"))
-                .attr("class", "windowGroup");
+                .attr("class", "windowSVG");
 
             // create a new window with data in the drawn position
-            var w = svg.selectAll(".windowGroup")
+            var w = svg.selectAll(".windowSVG")
                 .data(data)
                 .enter()
                 .append("rect")
@@ -247,23 +273,23 @@ LedMatrix = function (elemid, options) {
             // add the listener for deselection
             enableDeselectAll();
 
-            if (data[0].type == "page") {
+            if (data[0].type === "page") {
                 w.classed(data[0].type, true);
-            } else if (data[0].type == "scroll") {
+            } else if (data[0].type === "scroll") {
                 w.classed(data[0].type, true);
             }
 
-            if (data[0].pages[data[0].selectedPage].message.length != 0) {
+            if (data[0].pages[data[0].selectedPage].message.length !== 0) {
                 var edit = $(".textEdit");
                 // if is a paged message
-                if (data[0].type == "page") {
+                if (data[0].type === "page") {
                     for (var i = 0; i < data[0].pages.length; i++) {
                         writePageText(data[0].pages[i], edit.parent());
                     }
                     writePageText(data[0].pages[data[0].selectedPage], edit.parent());
                 }
                 // if is a paged message
-                else if (data[0].type == "scroll") {
+                else if (data[0].type === "scroll") {
                     data[0].preview = 0;
                     writeAllScrollText(data[0].pages[data[0].selectedPage], edit.parent());
                 }
@@ -285,11 +311,14 @@ LedMatrix = function (elemid, options) {
 
             // for each window marked as removable, remove it from displayArea and model array
             for (var i = 0; i < self.displayArea.window.length; i++) {
-                if (self.displayArea.window[i].datum().remove == true) {
-                    $(".selectedWindow").parent().remove();
+                if (self.displayArea.window[i].datum().remove === true) {
+                    $(".selectedWindow").parent().parent().remove();
                     self.displayArea.window.splice(i, 1);
                 }
             }
+
+            removeButtonsBar();
+
         } else {
             alert("select a window!");
         }
@@ -328,7 +357,7 @@ LedMatrix = function (elemid, options) {
         if (!self.displayArea.select(".selectedWindow").empty()) {
             // mark the selected window as textEdit
             var w = self.displayArea.select(".selectedWindow")
-                .on("click", function() {
+                .on("click", function () {
                     d3.event.preventDefault();
                     d3.event.stopPropagation();
                 })
@@ -438,7 +467,7 @@ LedMatrix = function (elemid, options) {
             var maxH;
             var j;
             for (var i = 0; i < data.cursorIndex; i++) {
-                if (data.message[i] != '\n') {
+                if (data.message[i] !== '\n') {
                     // add char width at cursor x pos and calculate y pos
                     data.cursorCurrXPos += data.font[i].getWidth(data.message[i]) + self.options.totPixelSize;
                     if (data.cursorCurrXPos > parseFloat(parent.attr("x")) + parseFloat(parent.attr("width")) + self.options.totPixelSize / 2) {
@@ -477,9 +506,9 @@ LedMatrix = function (elemid, options) {
 
                 $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize / 2, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize / 2, h, self.options.offsetSize * 2, "cursor"));
 
-                if (self.cursorBlinkTimer == null) {
+                if (self.cursorBlinkTimer === null) {
                     // init the cursor blinking timer
-                    self.cursorBlinkTimer = setInterval(cursorBlink, 500);
+                    self.cursorBlinkTimer = setInterval(cursorBlink, 350);
                 }
             } else {
                 self.saveMessage();
@@ -511,7 +540,7 @@ LedMatrix = function (elemid, options) {
 
                 $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize, h, self.options.offsetSize * 2, "cursor"));
 
-                if (self.cursorBlinkTimer == null) {
+                if (self.cursorBlinkTimer === null) {
                     // init the cursor blinking timer
                     self.cursorBlinkTimer = setInterval(cursorBlink, 500);
                 }
@@ -695,6 +724,9 @@ LedMatrix = function (elemid, options) {
 
     };
     // ------------- Do Stuff -------------
+    // constant
+    var DOUBLE_CLICK_TIME = 250;
+
     // init some data
     var self = this;
     var refreshView = 10;
@@ -706,26 +738,21 @@ LedMatrix = function (elemid, options) {
     this.options.percent = options.percent || 0.2;
     this.options.offsetSize = this.options.pixelSize * this.options.percent;
     this.options.totPixelSize = this.options.pixelSize + this.options.offsetSize;
+    this.options.border =  this.options.totPixelSize * 2;
 
     this.size = {
         width: this.options.horPixel * this.options.pixelSize + (this.options.horPixel + 1) * this.options.offsetSize,
         height: this.options.verPixel * this.options.pixelSize + (this.options.verPixel + 1) * this.options.offsetSize
     };
 
-    // create the container
-    var border = this.size.width * (0.03);
-    this.container = d3.select(this.matrix).append("svg")
-        .attr("width", this.size.width + border)
-        .attr("height", this.size.height + border)
-        .attr("class", "drawable-area");
-
     // create the display
-    this.displayArea = this.container.append("svg")
+    this.displayArea = d3.select(this.matrix).append("svg")
         .attr("width", this.size.width)
         .attr("height", this.size.height)
-        .attr("x", border / 2)
-        .attr("y", border / 2)
+        .attr("x", this.options.border/2)
+        .attr("y", this.options.border/2)
         .attr("class", "displayArea");
+    $(".displayArea").css('border', 'solid #333333 ' + this.options.border + 'px');
 
     var gGrid = this.SVG("g")
         .attr("class", "background-grid");
@@ -770,7 +797,7 @@ LedMatrix = function (elemid, options) {
     function manageClick() {
         var now = new Date().getTime();
         var dClick = false;
-        if (now - self.lastClickTime < 500) {
+        if (now - self.lastClickTime < DOUBLE_CLICK_TIME) {
             dClick = true;
         }
 
@@ -790,9 +817,13 @@ LedMatrix = function (elemid, options) {
             } else {
                 if (d3.select(this).classed("selectedWindow")) {
                     d3.select(this).classed('selectedWindow', false);
+
+                    removeButtonsBar();
+
                 } else {
                     deselectAllWindows();
                     d3.select(this).classed('selectedWindow', true);
+                    addButtonsBar();
                 }
             }
         }
@@ -804,6 +835,8 @@ LedMatrix = function (elemid, options) {
     // deselect all windows
     function deselectAllWindows() {
         d3.selectAll(".selectedWindow").classed('selectedWindow', false);
+
+        removeButtonsBar();
 
         d3.event.preventDefault();
         d3.event.stopPropagation();
@@ -836,7 +869,7 @@ LedMatrix = function (elemid, options) {
     // cursor blinking manager
     function cursorBlink() {
         self.cursor = self.displayArea.select(".cursor");
-        if (self.cursor.attr("visibility") == "hidden") {
+        if (self.cursor.attr("visibility") === "hidden") {
             self.cursor.attr("visibility", "visible");
         } else {
             self.cursor.attr("visibility", "hidden");
@@ -861,12 +894,12 @@ LedMatrix = function (elemid, options) {
 
         row[j] = [];
 
-        if (data.message.length != 0) {
+        if (data.message.length !== 0) {
             for (i = data.message.length - 1; i >= 0; i--) {
                 var p = $(parent[i]);
                 var charY = parseFloat(p.attr("dy"));
 
-                if (prevY != charY) {
+                if (prevY !== charY) {
                     prevY = charY;
                     j++;
                     row[j] = [];
@@ -883,7 +916,7 @@ LedMatrix = function (elemid, options) {
                 }
             }
 
-            if (rowIndex != null) {
+            if (rowIndex !== null) {
                 var xS = [];
                 for (j in row[rowIndex]) {
                     xS.push(parseFloat(row[rowIndex][j].attr("dx")));
@@ -896,18 +929,18 @@ LedMatrix = function (elemid, options) {
                 });
 
                 for (j in row[rowIndex]) {
-                    if (parseFloat(row[rowIndex][j].attr("dx")) == closest) {
+                    if (parseFloat(row[rowIndex][j].attr("dx")) === closest) {
                         nearest = parseFloat(row[rowIndex][j].attr("index"));
                     }
                 }
 
-                if (nearest == null) {
+                if (nearest === null) {
                     data.cursorIndex = parseFloat(row[rowIndex][row[rowIndex].length - 1].attr("index")) + 1;
                 } else {
                     data.cursorIndex = nearest;
                 }
             } else {
-                data.cursorIndex = parseFloat(row[row.length - 1][row[row.length - 1].length - 1].attr("index")) + 1
+                data.cursorIndex = parseFloat(row[row.length - 1][row[row.length - 1].length - 1].attr("index")) + 1;
             }
 
             // Refreshing the font:
@@ -916,7 +949,7 @@ LedMatrix = function (elemid, options) {
     }
 
     function startAnimation() {
-        if (self.previewTimer == null) {
+        if (self.previewTimer === null) {
             // start preview mode
             self.previewTimer = setInterval(playAnimation, refreshView);
         }
@@ -928,11 +961,11 @@ LedMatrix = function (elemid, options) {
     }
 
     function playAnimation() {
-        d3.selectAll(".windowGroup").each(function () {
+        d3.selectAll(".windowSVG").each(function () {
             var data = d3.select(this).select(".window").datum();
             var parent = $(this);
 
-            if (data.type == "scroll") {
+            if (data.type === "scroll") {
                 var firstPage = data.pages[data.selectedPage];
                 var chars = parent.find("g.char");
                 var minX = $(chars[0]).attr("dx");
@@ -940,7 +973,7 @@ LedMatrix = function (elemid, options) {
                 var newX;
                 var i;
 
-                if (data.scrollStep == 0) {
+                if (data.scrollStep === 0) {
                     if (minX < 0) {
                         for (i = firstPage.message.length - 1; i >= 0; i--) {
                             char = $(chars[i]);
@@ -956,7 +989,7 @@ LedMatrix = function (elemid, options) {
                                 .attr("dx", newX);
                         }
                     }
-                } else if (data.scrollStep % Math.pow(2, data.scrollSpeed) == 0) {
+                } else if (data.scrollStep % Math.pow(2, data.scrollSpeed) === 0) {
                     for (i = firstPage.message.length - 1; i >= 0; i--) {
                         char = $(chars[i]);
                         newX = parseFloat(char.attr("dx")) - self.options.totPixelSize;
@@ -971,12 +1004,12 @@ LedMatrix = function (elemid, options) {
                     data.scrollStep++;
                 }
             }
-            else if (data.type == "page") {
+            else if (data.type === "page") {
                 if (data.spent < data.duration) {
                     data.spent += refreshView / 1000;
                 } else {
                     data.spent = 0;
-                    if (data.selectedPage == data.pages.length - 1) {
+                    if (data.selectedPage === data.pages.length - 1) {
                         data.selectedPage = 0;
                     } else {
                         data.selectedPage++;
@@ -984,7 +1017,68 @@ LedMatrix = function (elemid, options) {
                     writeAllPageText(data.pages[data.selectedPage], parent);
                 }
             }
-        })
+        });
+    }
+
+    // add buttons bar to the selected window
+    function addButtonsBar() {
+        var w = $(".selectedWindow");
+        var svg = w.parent();
+        var g = svg.parent();
+
+        var b = self.SVG("g")
+            .attr("class", "buttons");
+        g.append(b);
+
+        b.append(
+            self.SVG("rect")
+                .attr("x", parseFloat(svg.attr("x")))
+                .attr("y", parseFloat(svg.attr("y")) - self.options.totPixelSize * 2)
+                .attr("width", parseFloat(w.attr("width")))
+                .attr("height", self.options.totPixelSize * 2)
+                .attr("fill", "white")
+                .attr("fill-opacity", 0.8)
+                .attr("class", "bar")
+            );
+
+        b.append(
+            self.SVG("circle")
+                .attr("cx", parseFloat(svg.attr("x")) + self.options.totPixelSize)
+                .attr("cy", parseFloat(svg.attr("y")) - self.options.pixelSize - self.options.offsetSize)
+                .attr("r", self.options.pixelSize)
+                .attr("fill", "red")
+                .attr("class", "remove")
+                .on("click", self.removeSelectedWindow)
+            );
+
+        b.append(
+            self.SVG("circle")
+                .attr("cx", parseFloat(svg.attr("x")) + self.options.totPixelSize * 3)
+                .attr("cy", parseFloat(svg.attr("y")) - self.options.pixelSize - self.options.offsetSize)
+                .attr("r", self.options.pixelSize)
+                .attr("fill", "green")
+                .attr("class", "move")
+                .on("click", self.startEditWindow)
+            );
+
+    }
+
+    // remove buttons bar to the selected window
+    function removeButtonsBar() {
+        $(".buttons").remove();
+    }
+
+    // soto editing window on double click on the svg brush
+    function stopEdit() {
+        var now = new Date().getTime();
+        var dClick = false;
+        if (now - self.lastClickTime < DOUBLE_CLICK_TIME) {
+            dClick = true;
+        }
+
+        self.lastClickTime = now;
+
+        return dClick;
     }
 
     // ------------- Private Editor Tools -------------
@@ -1554,14 +1648,14 @@ LedMatrix = function (elemid, options) {
                     row[j] = [];
 
                     // if the message is not empty
-                    if (data.message.length != 0) {
+                    if (data.message.length !== 0) {
 
                         // insert all the rows in the array
                         for (i = data.message.length - 1; i >= 0; i--) {
                             p = $(chars[i]);
                             charY = parseFloat(p.attr("dy"));
 
-                            if (prevY != charY) {
+                            if (prevY !== charY) {
                                 prevY = charY;
                                 j++;
                                 row[j] = [];
@@ -1571,7 +1665,7 @@ LedMatrix = function (elemid, options) {
 
                         // search what is the involved row
                         for (i in row) {
-                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
+                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) === parseFloat(row[i][0].attr("dy"))) {
                                 rowIndex = i;
                             }
                         }
@@ -1593,7 +1687,7 @@ LedMatrix = function (elemid, options) {
 
                             // select the index of the nearest element
                             for (j in row[newRow]) {
-                                if (parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")) == closest) {
+                                if (parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")) === closest) {
                                     data.cursorIndex = parseFloat(row[newRow][j].attr("index")) + 1;
                                 }
                             }
@@ -1614,14 +1708,14 @@ LedMatrix = function (elemid, options) {
                     row[j] = [];
 
                     // if the message is not empty
-                    if (data.message.length != 0) {
+                    if (data.message.length !== 0) {
 
                         // insert all the rows in the array
                         for (i = data.message.length - 1; i >= 0; i--) {
                             p = $(chars[i]);
                             charY = parseFloat(p.attr("dy"));
 
-                            if (prevY != charY) {
+                            if (prevY !== charY) {
                                 prevY = charY;
                                 j++;
                                 row[j] = [];
@@ -1631,7 +1725,7 @@ LedMatrix = function (elemid, options) {
 
                         // search what is the involved row
                         for (i in row) {
-                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) == parseFloat(row[i][0].attr("dy"))) {
+                            if (data.cursorCurrYPos - parseFloat(parent.attr("y")) === parseFloat(row[i][0].attr("dy"))) {
                                 rowIndex = i;
                             }
                         }
@@ -1654,10 +1748,10 @@ LedMatrix = function (elemid, options) {
 
                             // select the index of the nearest element
                             for (j in row[newRow]) {
-                                if (parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")) == closest) {
+                                if (parseFloat(row[newRow][j].attr("dx")) + parseFloat(row[newRow][j].attr("width")) === closest) {
                                     data.cursorIndex = parseFloat(row[newRow][j].attr("index")) + 1;
                                     // special case: second line first column, append to first line first column
-                                    if (isNewline && data.cursorIndex == 1) {
+                                    if (isNewline && data.cursorIndex === 1) {
                                         data.cursorIndex = 0;
                                     }
                                 }
@@ -1728,7 +1822,7 @@ LedMatrix = function (elemid, options) {
         // for all the massage length
         for (var i = 0; i < data.message.length; i++) {
             // if the char is not a \n
-            if (data.message[i] != '\n') {
+            if (data.message[i] !== '\n') {
                 // if the occupation is outside the windows width
                 if (xPos + data.font[i].getWidth(data.message[i]) + self.options.totPixelSize > x + w + self.options.totPixelSize / 2) {
                     // set x pos to the window start x
@@ -1828,7 +1922,7 @@ LedMatrix = function (elemid, options) {
 
         location.find("g.char").each(function () {
             var self = $(this);
-            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"));
         });
     }
 
@@ -1846,7 +1940,7 @@ LedMatrix = function (elemid, options) {
         // for all the massage length
         for (var i = 0; i < data.message.length; i++) {
             // if the char is not a \n
-            if (data.message[i] != '\n') {
+            if (data.message[i] !== '\n') {
                 // if the occupation is outside the windows width
                 if (xPos + data.font[i].getWidth(data.message[i]) + self.options.totPixelSize > w + self.options.totPixelSize / 2) {
                     // set x pos to the window start x
@@ -1916,7 +2010,7 @@ LedMatrix = function (elemid, options) {
 
         location.find("g.char").each(function () {
             var self = $(this);
-            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"));
         });
     }
 
@@ -1957,7 +2051,7 @@ LedMatrix = function (elemid, options) {
 
         location.find("g.char").each(function () {
             var self = $(this);
-            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"));
         });
     }
 
@@ -2017,7 +2111,7 @@ LedMatrix = function (elemid, options) {
 
         location.find("g.char").each(function () {
             var self = $(this);
-            self.attr("class", self.attr("class") + " " + self.attr("blinking"))
+            self.attr("class", self.attr("class") + " " + self.attr("blinking"));
         });
     }
 
