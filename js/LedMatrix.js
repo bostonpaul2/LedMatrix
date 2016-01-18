@@ -24,7 +24,7 @@ LedMatrix = function (elemid, options) {
                 .x(d3.scale.identity().domain([0, self.size.width]))
                 .y(d3.scale.identity().domain([0, self.size.height]))
                 .on("brushend", brushed)
-                .on("brushstart", function() {
+                .on("brushstart", function () {
                     stop = stopEdit();
                 });
 
@@ -48,7 +48,7 @@ LedMatrix = function (elemid, options) {
 
                 // applay snap
                 d3.select(this).transition()
-                    .each("end", function() {
+                    .each("end", function () {
                         if (stop) {
                             self.stopEditWindow();
                         }
@@ -96,7 +96,7 @@ LedMatrix = function (elemid, options) {
                 .x(d3.scale.identity().domain([0, self.size.width]))
                 .y(d3.scale.identity().domain([0, self.size.height]))
                 .extent([[pos.x, pos.y], [pos.width, pos.height]])
-                .on("brushstart", function() {
+                .on("brushstart", function () {
                     stop = stopEdit();
                 })
                 .on("brush", brushing)
@@ -158,7 +158,7 @@ LedMatrix = function (elemid, options) {
 
                 // apply snap
                 d3.select(this).transition()
-                    .each("end", function() {
+                    .each("end", function () {
                         if (stop) {
                             self.stopEditWindow();
                         }
@@ -738,7 +738,7 @@ LedMatrix = function (elemid, options) {
     this.options.percent = options.percent || 0.2;
     this.options.offsetSize = this.options.pixelSize * this.options.percent;
     this.options.totPixelSize = this.options.pixelSize + this.options.offsetSize;
-    this.options.border =  this.options.totPixelSize * 2;
+    this.options.border = this.options.totPixelSize;
 
     this.size = {
         width: this.options.horPixel * this.options.pixelSize + (this.options.horPixel + 1) * this.options.offsetSize,
@@ -749,8 +749,8 @@ LedMatrix = function (elemid, options) {
     this.displayArea = d3.select(this.matrix).append("svg")
         .attr("width", this.size.width)
         .attr("height", this.size.height)
-        .attr("x", this.options.border/2)
-        .attr("y", this.options.border/2)
+        .attr("x", this.options.border / 2)
+        .attr("y", this.options.border / 2)
         .attr("class", "displayArea");
     $(".displayArea").css('border', 'solid #333333 ' + this.options.border + 'px');
 
@@ -1022,50 +1022,57 @@ LedMatrix = function (elemid, options) {
 
     // add buttons bar to the selected window
     function addButtonsBar() {
-        var w = $(".selectedWindow");
-        var svg = w.parent();
+        var win = $(".selectedWindow");
+        var svg = win.parent();
         var g = svg.parent();
 
+        var x = parseFloat(svg.attr("x"));
+        var y = parseFloat(svg.attr("y"));
+        var w = parseFloat(svg.attr("width"));
+        var h = parseFloat(svg.attr("height"));
+
+        var path = computeBorderPath(x, y, w, h, self.options.border);
+
         var b = self.SVG("g")
-            .attr("class", "buttons");
+            .attr("class", "context-menu");
         g.append(b);
 
         b.append(
-            self.SVG("rect")
-                .attr("x", parseFloat(svg.attr("x")))
-                .attr("y", parseFloat(svg.attr("y")) - self.options.totPixelSize * 2)
-                .attr("width", parseFloat(w.attr("width")))
-                .attr("height", self.options.totPixelSize * 2)
-                .attr("fill", "white")
-                .attr("fill-opacity", 0.8)
+            self.SVG("path")
+                .attr("d", path)
+                .attr("fill", "#666666")
+                .attr("fill-opacity", 0.9)
                 .attr("class", "bar")
-            );
+        );
 
-        b.append(
-            self.SVG("circle")
-                .attr("cx", parseFloat(svg.attr("x")) + self.options.totPixelSize)
-                .attr("cy", parseFloat(svg.attr("y")) - self.options.pixelSize - self.options.offsetSize)
-                .attr("r", self.options.pixelSize)
-                .attr("fill", "red")
-                .attr("class", "remove")
-                .on("click", self.removeSelectedWindow)
-            );
+        var menu = self.SVG('svg')
+            .attr("x", x + w + self.options.border / 2)
+            .attr("y", y)
+            .attr("width", self.options.border * 3)
+            .attr("height", self.options.border * 3)
+            .attr("class", "menu-button")
+            .on("click", manageMenu);
 
-        b.append(
-            self.SVG("circle")
-                .attr("cx", parseFloat(svg.attr("x")) + self.options.totPixelSize * 3)
-                .attr("cy", parseFloat(svg.attr("y")) - self.options.pixelSize - self.options.offsetSize)
-                .attr("r", self.options.pixelSize)
-                .attr("fill", "green")
-                .attr("class", "move")
-                .on("click", self.startEditWindow)
-            );
+        b.append(menu);
 
+        var s = Snap(".menu-button");
+        Snap.load("img/menu.svg", function (f) {
+            f.selectAll("path[fill='#AAAAAA']").attr({fill: "#bada55"});
+            s.append(f);
+        });
+
+        g.appendTo(".displayArea");
+    }
+
+    // show or hide context menu
+    function manageMenu(e) {
+        e.stopImmediatePropagation();
+        console.log("open/close")
     }
 
     // remove buttons bar to the selected window
     function removeButtonsBar() {
-        $(".buttons").remove();
+        $(".context-menu").remove();
     }
 
     // soto editing window on double click on the svg brush
@@ -1079,6 +1086,32 @@ LedMatrix = function (elemid, options) {
         self.lastClickTime = now;
 
         return dClick;
+    }
+
+    function computeBorderPath(x, y, w, h, r) {
+
+        var contextWidth = r * 3;
+        var contextHeight = r * 3;
+        r /= 2;
+
+        var pathIn = "M" + x + "," + y + "v" + h + "h" + w + "V" + y + "z";
+        var pathOut =
+            "M" + x + "," + (y - r) +
+            "h" + (w + contextWidth + r) +
+            "a" + r + "," + r + " 0 0 1" + r + "," + r +
+            "v" + contextHeight +
+            "a" + r + "," + r + " 0 0 1" + -r + "," + r +
+            "h" + (r - contextWidth) +
+            "a" + r + "," + r + " 0 0 0" + -r + "," + r +
+            "v" + (h - contextHeight - r * 2) +
+            "a" + r + "," + r + " 0 0 1" + -r + "," + r +
+            "H" + x +
+            "a" + r + "," + r + " 0 0 1" + -r + "," + -r +
+            "V" + y +
+            "a" + r + "," + r + " 0 0 1" + r + "," + -r +
+            "z";
+
+        return pathOut + pathIn;
     }
 
     // ------------- Private Editor Tools -------------
