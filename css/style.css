@@ -58,6 +58,44 @@
     stroke-opacity: 1;
 }
 
+#menu-icon {
+    cursor: pointer;
+    -webkit-transition: fill 0.2s ease;
+    -moz-transition: fill 0.2s ease;
+    -o-transition: fill 0.2s ease;
+    transition: fill 0.2s ease;
+}
+
+#menu-icon path{
+    fill: white;
+}
+
+#menu-icon.open path{
+    fill: #bada55;
+}
+
+.menu {
+    stroke: #AAAAAA;
+    stroke-width: 1px;
+    stroke-opacity: 1;
+}
+
+.close-menu {
+    opacity: 0;
+    -webkit-transition: opacity 0.2s ease-in-out;
+    -moz-transition: opacity 0.2s ease-in-out;
+    -o-transition: opacity 0.2s ease-in-out;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.open-menu {
+    opacity: 1;
+    -webkit-transition: opacity 0.2s ease-in-out;
+    -moz-transition: opacity 0.2s ease-in-out;
+    -o-transition: opacity 0.2s ease-in-out;
+    transition: opacity 0.2s ease-in-out;
+}
+
 .textEdit {
     cursor: text;
     stroke: white;
@@ -87,7 +125,9 @@
 }
 
 /* Blinking modes: */
-.blink-fixed { }
+.blink-fixed {
+}
+
 .blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
     -webkit-animation-timing-function: linear;
     -webkit-animation-iteration-count: infinite;
@@ -96,26 +136,31 @@
     animation-timing-function: linear;
     animation-iteration-count: infinite;
 }
+
 .blink-sim_slow {
     -webkit-animation-duration: 0.8s;
     -moz-animation-duration: 0.8s;
     animation-duration: 0.8s;
 }
+
 .blink-sim_medium {
     -webkit-animation-duration: 0.55s;
     -moz-animation-duration: 0.55s;
     animation-duration: 0.55s;
 }
+
 .blink-sim_fast {
     -webkit-animation-duration: 0.35s;
     -moz-animation-duration: 0.35s;
     animation-duration: 0.35s;
 }
+
 .blink-sim_very_fast {
     -webkit-animation-duration: 0.2s;
     -moz-animation-duration: 0.2s;
     animation-duration: 0.2s;
 }
+
 .blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
     -webkit-animation-name: blinker;
     -moz-animation-name: blinker;
@@ -123,67 +168,64 @@
 }
 
 @-moz-keyframes blinker {
-    0% { opacity: 1.0; }
-    24% { opacity: 1.0; }
-    25% { opacity: 0.0; }
-    75% { opacity: 0.0; }
-    76% { opacity: 1.0; }
-    100% { opacity: 1.0; }
+    0% {
+        opacity: 1.0;
+    }
+    24% {
+        opacity: 1.0;
+    }
+    25% {
+        opacity: 0.0;
+    }
+    75% {
+        opacity: 0.0;
+    }
+    76% {
+        opacity: 1.0;
+    }
+    100% {
+        opacity: 1.0;
+    }
 }
+
 @-webkit-keyframes blinker {
-    0% { opacity: 1.0; }
-    24% { opacity: 1.0; }
-    25% { opacity: 0.0; }
-    75% { opacity: 0.0; }
-    76% { opacity: 1.0; }
-    100% { opacity: 1.0; }
+    0% {
+        opacity: 1.0;
+    }
+    24% {
+        opacity: 1.0;
+    }
+    25% {
+        opacity: 0.0;
+    }
+    75% {
+        opacity: 0.0;
+    }
+    76% {
+        opacity: 1.0;
+    }
+    100% {
+        opacity: 1.0;
+    }
 }
+
 @keyframes blinker {
-    0% { opacity: 1.0; }
-    24% { opacity: 1.0; }
-    25% { opacity: 0.0; }
-    75% { opacity: 0.0; }
-    76% { opacity: 1.0; }
-    100% { opacity: 1.0; }
-}
-
-@-moz-keyframes blinker-on {
-    0% { opacity: 1.0; }
-    40% { opacity: 0.8; }
-    50% { opacity: 0.0; }
-    60% { opacity: 0.8; }
-    100% { opacity: 1.0; }
-}
-@-webkit-keyframes blinker-on {
-    0% { opacity: 1.0; }
-    40% { opacity: 0.8; }
-    50% { opacity: 0.0; }
-    60% { opacity: 0.8; }
-    100% { opacity: 1.0; }
-}
-@keyframes blinker-on {
-    0% { opacity: 1.0; }
-    40% { opacity: 0.8; }
-    50% { opacity: 0.0; }
-    60% { opacity: 0.8; }
-    100% { opacity: 1.0; }
-}
-
-@-moz-keyframes blinker-off {
-    0% { opacity: 1.0; }
-    10% { opacity: 0.0; }
-    90% { opacity: 0.0; }
-    100% { opacity: 1.0; }
-}
-@-webkit-keyframes blinker-off {
-    0% { opacity: 1.0; }
-    10% { opacity: 0.0; }
-    90% { opacity: 0.0; }
-    100% { opacity: 1.0; }
-}
-@keyframes blinker-off {
-    0% { opacity: 1.0; }
-    10% { opacity: 0.0; }
-    90% { opacity: 0.0; }
-    100% { opacity: 1.0; }
+    0% {
+        opacity: 1.0;
+    }
+    24% {
+        opacity: 1.0;
+    }
+    25% {
+        opacity: 0.0;
+    }
+    75% {
+        opacity: 0.0;
+    }
+    76% {
+        opacity: 1.0;
+    }
+    100% {
+        opacity: 1.0;
+    }
 }

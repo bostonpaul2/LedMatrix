@@ -1022,52 +1022,111 @@ LedMatrix = function (elemid, options) {
 
     // add buttons bar to the selected window
     function addButtonsBar() {
+        // window rect
         var win = $(".selectedWindow");
+
+        // window svg that contain rect and chars
         var svg = win.parent();
+
+        // window group where will be the context menu
         var g = svg.parent();
 
+        // window dimension
         var x = parseFloat(svg.attr("x"));
         var y = parseFloat(svg.attr("y"));
         var w = parseFloat(svg.attr("width"));
         var h = parseFloat(svg.attr("height"));
 
-        var path = computeBorderPath(x, y, w, h, self.options.border);
-
+        // context menu group
         var b = self.SVG("g")
             .attr("class", "context-menu");
         g.append(b);
 
+        // computed window border
+        var borderPath = computeBorderPath(x, y, w, h, self.options.border);
+
+        // append border
         b.append(
             self.SVG("path")
-                .attr("d", path)
+                .attr("d", borderPath)
                 .attr("fill", "#666666")
                 .attr("fill-opacity", 0.9)
                 .attr("class", "bar")
+                .on("click", function (e) {
+                    e.stopImmediatePropagation();
+                })
         );
 
-        var menu = self.SVG('svg')
-            .attr("x", x + w + self.options.border / 2)
-            .attr("y", y)
-            .attr("width", self.options.border * 3)
-            .attr("height", self.options.border * 3)
-            .attr("class", "menu-button")
-            .on("click", manageMenu);
+        // hamburger icon
+        var s = Snap(".context-menu");
 
-        b.append(menu);
-
-        var s = Snap(".menu-button");
+        // load SVG image from resources
         Snap.load("img/menu.svg", function (f) {
-            f.selectAll("path[fill='#AAAAAA']").attr({fill: "#bada55"});
+            // the group of paths in the image
+            var g = f.select("g");
+
+            // hover animation function
+            var hoverover = function () {
+                g.animate({transform: 's1.2,0,0t' + -self.options.border * 20 / self.options.pixelSize + "," + -self.options.border * 20 / self.options.pixelSize}, 500, mina.elastic)
+            };
+
+            // out hover animation function
+            var hoverout = function () {
+                g.animate({transform: 's1,0,0'}, 500, mina.elastic)
+            };
+
+            // properties of loaded svg
+            f.select("svg")
+                .attr("x", x + w + self.options.border / 2)
+                .attr("y", y)
+                .attr("width", self.options.border * 3)
+                .attr("height", self.options.border * 3)
+                .click(manageMenu)
+                .hover(hoverover, hoverout);
+
+            // append the svg
             s.append(f);
         });
 
+        // check type of needed menu
+        var type = "page";
+        if (d3.select(".selectedWindow").classed("scroll")) {
+            type = "scroll";
+        }
+
+        // context menu group
+        var menuGroup = self.SVG("g")
+            .attr("class", "menu-group");
+
+        // append menu group
+        b.append(menuGroup);
+
+        //create the menu
+        var menu = computeMenu(x, y, w, h, self.options.border, type);
+
+        // move the selected window over
         g.appendTo(".displayArea");
     }
 
     // show or hide context menu
     function manageMenu(e) {
+        // stop click propagation
         e.stopImmediatePropagation();
-        console.log("open/close")
+
+        // select thing
+        var menu = d3.select(".menu-group");
+        var icon = d3.select("#menu-icon");
+
+        // open and close menu with css transition
+        if (menu.classed("close-menu")) {
+            menu.classed("close-menu", false);
+            menu.classed("open-menu", true);
+            icon.attr("class", "open")
+        } else if (menu.classed("open-menu")) {
+            menu.classed("open-menu", false);
+            menu.classed("close-menu", true);
+            icon.attr("class", "close")
+        }
     }
 
     // remove buttons bar to the selected window
@@ -1075,7 +1134,7 @@ LedMatrix = function (elemid, options) {
         $(".context-menu").remove();
     }
 
-    // soto editing window on double click on the svg brush
+    // stop editing window on double click on the svg brush
     function stopEdit() {
         var now = new Date().getTime();
         var dClick = false;
@@ -1092,6 +1151,7 @@ LedMatrix = function (elemid, options) {
 
         var contextWidth = r * 3;
         var contextHeight = r * 3;
+
         r /= 2;
 
         var pathIn = "M" + x + "," + y + "v" + h + "h" + w + "V" + y + "z";
@@ -1112,6 +1172,139 @@ LedMatrix = function (elemid, options) {
             "z";
 
         return pathOut + pathIn;
+    }
+
+    function computeMenuPath(x, y, w, h, r) {
+
+        return "M" + x + "," + (y - r) +
+            "h" + w +
+            "a" + r + "," + r + " 0 0 1" + r + "," + r +
+            "v" + h +
+            "a" + r + "," + r + " 0 0 1" + -r + "," + r +
+            "H" + x +
+            "a" + r + "," + r + " 0 0 1" + -r + "," + -r +
+            "V" + y +
+            "a" + r + "," + r + " 0 0 1" + r + "," + -r +
+            "z";
+
+    }
+
+    function computeMenu(x, y, w, h, r, type) {
+        // do math for position
+        var contextWidth = r * 3;
+        var contextHeight = r * 3;
+        var stdMenuHight = r * 4
+        var stdMenuWidth = stdMenuHight * 4
+        var xMenu = x + w + r;
+        var yMenu = y + contextHeight + r;
+        var wMenu = stdMenuWidth;
+        var hMenu = 0;
+
+        // create snap object to import svg image
+        var s = Snap(".menu-group");
+        // remove icon
+        // load SVG image from resources
+        Snap.load("img/remove.svg", function (f) {
+
+            // the group of paths in the image
+            var g = f.select("g");
+
+            // hover animation function
+            var hoverover = function () {
+                g.animate({fill: '#bada55'}, 200)
+            };
+
+            // out hover animation function
+            var hoverout = function () {
+                g.animate({fill: 'white'}, 200)
+            };
+
+            g.attr('fill', 'white');
+
+            // properties of loaded svg
+            f.select("svg")
+                .attr("x", xMenu)
+                .attr("y", y + stdMenuHight)
+                .attr("width", stdMenuWidth)
+                .attr("height", stdMenuHight)
+                .click(self.removeSelectedWindow)
+                .hover(hoverover, hoverout);
+
+            // append the svg
+            s.append(f);
+        });
+
+        // add one
+        hMenu += stdMenuHight;
+
+        // move icon
+        // load SVG image from resources
+        Snap.load("img/move.svg", function (f) {
+            // the group of paths in the image
+            var g = f.select("g");
+
+            // hover animation function
+            var hoverover = function () {
+                g.animate({fill: '#bada55'}, 200)
+            };
+
+            // out hover animation function
+            var hoverout = function () {
+                g.animate({fill: 'white'}, 200)
+            };
+
+            g.attr('fill', 'white');
+
+            // properties of loaded svg
+            f.select("svg")
+                .attr("x", xMenu)
+                .attr("y", y + stdMenuHight*2)
+                .attr("width", stdMenuWidth)
+                .attr("height", stdMenuHight)
+                .click(self.startEditWindow)
+                .hover(hoverover, hoverout);
+
+            // append the svg
+            s.append(f);
+        });
+
+        // add one
+        hMenu += stdMenuHight;
+
+        /*if (type === "scroll") {
+         hMenu = 100;
+         }
+
+         if (y + hMenu + r * 3 > self.size.height) {
+         yMenu = y - (hMenu) / 2 + contextHeight;
+         xMenu = x + w + contextWidth + r * 2;
+         }
+         if (yMenu + hMenu + r * 3 > self.size.height) {
+         yMenu = y - (hMenu - contextHeight);
+         xMenu = x + w + contextWidth + r * 2;
+         }
+         r /= 2;*/
+
+        // select menu group
+        var menuGroup = $(".menu-group");
+
+        // create menu path depending on the type
+        var menuPath = computeMenuPath(xMenu, yMenu, wMenu, hMenu, r);
+        var menu = self.SVG("path")
+            .attr("d", menuPath)
+            .attr("fill", "#666666")
+            .attr("fill-opacity", 0.9)
+            .attr("class", "menu")
+            .on("click", function (e) {
+                e.stopImmediatePropagation();
+            });
+
+        // mark the menu as close
+        var c = menuGroup.attr("class") + " close-menu";
+        menuGroup.attr("class", c);
+
+        menuGroup.append(menu);
+
     }
 
     // ------------- Private Editor Tools -------------
