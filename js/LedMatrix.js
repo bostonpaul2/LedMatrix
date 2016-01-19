@@ -1194,7 +1194,7 @@ LedMatrix = function (elemid, options) {
         var contextWidth = r * 3;
         var contextHeight = r * 3;
         var stdMenuHight = r * 4
-        var stdMenuWidth = stdMenuHight * 4
+        var stdMenuWidth = stdMenuHight * 6;
         var xMenu = x + w + r;
         var yMenu = y + contextHeight + r;
         var wMenu = stdMenuWidth;
@@ -1268,8 +1268,137 @@ LedMatrix = function (elemid, options) {
             s.append(f);
         });
 
-        // add one
-        hMenu += stdMenuHight;
+        // add two
+        hMenu += stdMenuHight*2;
+
+        if (type === "page") {
+            // prev icon
+            // load SVG image from resources
+            Snap.load("img/prev.svg", function (f) {
+                // the group of paths in the image
+                var g = f.select("g");
+
+                // hover animation function
+                var hoverover = function () {
+                    g.animate({fill: '#bada55'}, 200)
+                };
+
+                // out hover animation function
+                var hoverout = function () {
+                    g.animate({fill: 'white'}, 200)
+                };
+
+                g.attr('fill', 'white');
+
+                // properties of loaded svg
+                f.select("svg")
+                    .attr("x", xMenu)
+                    .attr("y", y + stdMenuHight*5)
+                    .attr("width", stdMenuWidth/3)
+                    .attr("height", stdMenuHight*2)
+                    .click(self.prevPage)
+                    .hover(hoverover, hoverout);
+
+                // append the svg
+                s.append(f);
+            });
+
+            // next icon
+            // load SVG image from resources
+            Snap.load("img/next.svg", function (f) {
+                // the group of paths in the image
+                var g = f.select("g");
+
+                // hover animation function
+                var hoverover = function () {
+                    g.animate({fill: '#bada55'}, 200)
+                };
+
+                // out hover animation function
+                var hoverout = function () {
+                    g.animate({fill: 'white'}, 200)
+                };
+
+                g.attr('fill', 'white');
+
+                // properties of loaded svg
+                f.select("svg")
+                    .attr("x", xMenu + stdMenuWidth*2/3)
+                    .attr("y", y + stdMenuHight*5)
+                    .attr("width", stdMenuWidth/3)
+                    .attr("height", stdMenuHight*2)
+                    .click(self.nextPage)
+                    .hover(hoverover, hoverout);
+
+                // append the svg
+                s.append(f);
+            });
+
+            // add icon
+            // load SVG image from resources
+            Snap.load("img/add.svg", function (f) {
+                // the group of paths in the image
+                var g = f.select("g");
+
+                // hover animation function
+                var hoverover = function () {
+                    g.animate({fill: '#bada55'}, 200)
+                };
+
+                // out hover animation function
+                var hoverout = function () {
+                    g.animate({fill: 'white'}, 200)
+                };
+
+                g.attr('fill', 'white');
+
+                // properties of loaded svg
+                f.select("svg")
+                    .attr("x", xMenu + stdMenuWidth/3)
+                    .attr("y", y + stdMenuHight*4)
+                    .attr("width", stdMenuWidth/3)
+                    .attr("height", stdMenuHight*2)
+                    .click(self.addPage)
+                    .hover(hoverover, hoverout);
+
+                // append the svg
+                s.append(f);
+            });
+
+            // delete icon
+            // load SVG image from resources
+            Snap.load("img/delete.svg", function (f) {
+                // the group of paths in the image
+                var g = f.select("g");
+
+                // hover animation function
+                var hoverover = function () {
+                    g.animate({fill: '#bada55'}, 200)
+                };
+
+                // out hover animation function
+                var hoverout = function () {
+                    g.animate({fill: 'white'}, 200)
+                };
+
+                g.attr('fill', 'white');
+
+                // properties of loaded svg
+                f.select("svg")
+                    .attr("x", xMenu + stdMenuWidth/3)
+                    .attr("y", y + stdMenuHight*6)
+                    .attr("width", stdMenuWidth/3)
+                    .attr("height", stdMenuHight*2)
+                    .click(self.removePage)
+                    .hover(hoverover, hoverout);
+
+                // append the svg
+                s.append(f);
+            });
+
+            // add four
+            hMenu += stdMenuHight*6;
+        }
 
         /*if (type === "scroll") {
          hMenu = 100;
@@ -1282,8 +1411,8 @@ LedMatrix = function (elemid, options) {
          if (yMenu + hMenu + r * 3 > self.size.height) {
          yMenu = y - (hMenu - contextHeight);
          xMenu = x + w + contextWidth + r * 2;
-         }
-         r /= 2;*/
+         }*/
+         r /= 2;
 
         // select menu group
         var menuGroup = $(".menu-group");

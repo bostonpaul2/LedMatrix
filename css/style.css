@@ -66,6 +66,10 @@
     transition: fill 0.2s ease;
 }
 
+#remove-btn, #move-btn, #prev-btn, #next-btn, #add-btn, #delete-btn {
+    cursor: pointer;
+}
+
 #menu-icon path{
     fill: white;
 }
