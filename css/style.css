@@ -3,13 +3,14 @@
 }
 
 .ledMatrix {
+    position: relative;
+    display: block;
     float: left;
-    margin-left: 30px;
 }
 
 .displayArea {
+    margin: 0 200px;
     overflow: visible;
-    margin: 0 100px 0 100px;
 }
 
 .background-display {
@@ -58,7 +59,7 @@
     stroke-opacity: 1;
 }
 
-#menu-icon {
+.menu-icon {
     cursor: pointer;
     -webkit-transition: fill 0.2s ease;
     -moz-transition: fill 0.2s ease;
@@ -66,38 +67,74 @@
     transition: fill 0.2s ease;
 }
 
-#remove-btn, #move-btn, #prev-btn, #next-btn, #add-btn, #delete-btn {
+.menu-group {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 5px;
+    border: 1px solid #AAAAAA;
+    padding: 5px;
+    margin: 5px;
+    background: #666666;
+    text-align: center;
+    opacity: 0.9;
+    color: white;
+}
+
+.menu-button {
+    cursor: pointer;
+    padding: 5px 15px;
+}
+
+.menu-button:hover {
+    color: #bada55;
+    -webkit-transition: color 0.2s ease;
+    -moz-transition: color 0.2s ease;
+    -o-transition: color 0.2s ease;
+    transition: color 0.2s ease;
+}
+
+.buttons-container .menu-button {
+    padding: 5px 5px;
+    display: inline-block;
+}
+
+.buttons-container-text {
+    color: #AAAAAA;
+    cursor: default;
+}
+
+.buttons-separator {
+    padding: 10px;
+}
+
+.remove-btn, .move-btn, .prev-btn, .next-btn, .add-btn, .delete-btn {
     cursor: pointer;
 }
 
-#menu-icon path{
+.menu-icon path{
     fill: white;
 }
 
-#menu-icon.open path{
+.menu-button:not(:hover) {
+    -webkit-animation-iteration-count: 0;
+    -moz-animation-iteration-count: 0;
+    animation-iteration-count: 0;
+}
+
+.clicked path{
     fill: #bada55;
+}
+
+.clicked {
+     color: #bada55;
 }
 
 .menu {
     stroke: #AAAAAA;
     stroke-width: 1px;
     stroke-opacity: 1;
-}
-
-.close-menu {
-    opacity: 0;
-    -webkit-transition: opacity 0.2s ease-in-out;
-    -moz-transition: opacity 0.2s ease-in-out;
-    -o-transition: opacity 0.2s ease-in-out;
-    transition: opacity 0.2s ease-in-out;
-}
-
-.open-menu {
-    opacity: 1;
-    -webkit-transition: opacity 0.2s ease-in-out;
-    -moz-transition: opacity 0.2s ease-in-out;
-    -o-transition: opacity 0.2s ease-in-out;
-    transition: opacity 0.2s ease-in-out;
 }
 
 .textEdit {

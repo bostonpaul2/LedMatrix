@@ -726,6 +726,8 @@ LedMatrix = function (elemid, options) {
     // ------------- Do Stuff -------------
     // constant
     var DOUBLE_CLICK_TIME = 250;
+    var SELECTED_COLOR = "#bada55"
+    var UNSELECTED_COLOR = "#FFFFFF"
 
     // init some data
     var self = this;
@@ -1057,6 +1059,8 @@ LedMatrix = function (elemid, options) {
                 })
         );
 
+        // TODO:sostituire SVG con font come nel div sottostante
+
         // hamburger icon
         var s = Snap(".context-menu");
 
@@ -1094,15 +1098,11 @@ LedMatrix = function (elemid, options) {
             type = "scroll";
         }
 
-        // context menu group
-        var menuGroup = self.SVG("g")
-            .attr("class", "menu-group");
+        //create the menu
+        var menuGroup = createMenu(x, y, w, h, self.options.border, type);
 
         // append menu group
-        b.append(menuGroup);
-
-        //create the menu
-        var menu = computeMenu(x, y, w, h, self.options.border, type);
+        $('.ledMatrix').append(menuGroup);
 
         // move the selected window over
         g.appendTo(".displayArea");
@@ -1113,25 +1113,22 @@ LedMatrix = function (elemid, options) {
         // stop click propagation
         e.stopImmediatePropagation();
 
-        // select thing
-        var menu = d3.select(".menu-group");
-        var icon = d3.select("#menu-icon");
-
-        // open and close menu with css transition
-        if (menu.classed("close-menu")) {
-            menu.classed("close-menu", false);
-            menu.classed("open-menu", true);
-            icon.attr("class", "open")
-        } else if (menu.classed("open-menu")) {
-            menu.classed("open-menu", false);
-            menu.classed("close-menu", true);
-            icon.attr("class", "close")
+        // Fading out the menu:
+        var menu = $(".menu-group");
+        var icon = $(".menu-icon");
+        if (menu.css('display') === 'none') {
+            menu.fadeIn(300);
+            icon[0].classList.add('clicked');
+        }
+        else {
+            menu.fadeOut(300);
+            icon[0].classList.remove('clicked');
         }
     }
 
     // remove buttons bar to the selected window
     function removeButtonsBar() {
-        $(".context-menu").remove();
+        $(".context-menu, .menu-group").remove();
     }
 
     // stop editing window on double click on the svg brush
@@ -1174,266 +1171,101 @@ LedMatrix = function (elemid, options) {
         return pathOut + pathIn;
     }
 
-    function computeMenuPath(x, y, w, h, r) {
-
-        return "M" + x + "," + (y - r) +
-            "h" + w +
-            "a" + r + "," + r + " 0 0 1" + r + "," + r +
-            "v" + h +
-            "a" + r + "," + r + " 0 0 1" + -r + "," + r +
-            "H" + x +
-            "a" + r + "," + r + " 0 0 1" + -r + "," + -r +
-            "V" + y +
-            "a" + r + "," + r + " 0 0 1" + r + "," + -r +
-            "z";
-
-    }
-
-    function computeMenu(x, y, w, h, r, type) {
+    function createMenu(x, y, w, h, r, type) {
         // do math for position
         var contextWidth = r * 3;
         var contextHeight = r * 3;
-        var stdMenuHight = r * 4
-        var stdMenuWidth = stdMenuHight * 6;
+        var stdMenuHeight = r * 4;
+        var stdMenuWidth = stdMenuHeight * 6;
         var xMenu = x + w + r;
         var yMenu = y + contextHeight + r;
         var wMenu = stdMenuWidth;
         var hMenu = 0;
 
-        // create snap object to import svg image
-        var s = Snap(".menu-group");
-        // remove icon
-        // load SVG image from resources
-        Snap.load("img/remove.svg", function (f) {
-
-            // the group of paths in the image
-            var g = f.select("g");
-
-            // hover animation function
-            var hoverover = function () {
-                g.animate({fill: '#bada55'}, 200)
-            };
-
-            // out hover animation function
-            var hoverout = function () {
-                g.animate({fill: 'white'}, 200)
-            };
-
-            g.attr('fill', 'white');
-
-            // properties of loaded svg
-            f.select("svg")
-                .attr("x", xMenu)
-                .attr("y", y + stdMenuHight)
-                .attr("width", stdMenuWidth)
-                .attr("height", stdMenuHight)
-                .click(self.removeSelectedWindow)
-                .hover(hoverover, hoverout);
-
-            // append the svg
-            s.append(f);
-        });
-
-        // add one
-        hMenu += stdMenuHight;
-
-        // move icon
-        // load SVG image from resources
-        Snap.load("img/move.svg", function (f) {
-            // the group of paths in the image
-            var g = f.select("g");
-
-            // hover animation function
-            var hoverover = function () {
-                g.animate({fill: '#bada55'}, 200)
-            };
-
-            // out hover animation function
-            var hoverout = function () {
-                g.animate({fill: 'white'}, 200)
-            };
-
-            g.attr('fill', 'white');
-
-            // properties of loaded svg
-            f.select("svg")
-                .attr("x", xMenu)
-                .attr("y", y + stdMenuHight*2)
-                .attr("width", stdMenuWidth)
-                .attr("height", stdMenuHight)
-                .click(self.startEditWindow)
-                .hover(hoverover, hoverout);
-
-            // append the svg
-            s.append(f);
-        });
-
-        // add two
-        hMenu += stdMenuHight*2;
+        var data = d3.select('.selectedWindow').datum();
+        var pageNumberOf = " " + (data.selectedPage + 1) + "/" + data.pages.length + " ";
 
         if (type === "page") {
-            // prev icon
-            // load SVG image from resources
-            Snap.load("img/prev.svg", function (f) {
-                // the group of paths in the image
-                var g = f.select("g");
-
-                // hover animation function
-                var hoverover = function () {
-                    g.animate({fill: '#bada55'}, 200)
-                };
-
-                // out hover animation function
-                var hoverout = function () {
-                    g.animate({fill: 'white'}, 200)
-                };
-
-                g.attr('fill', 'white');
-
-                // properties of loaded svg
-                f.select("svg")
-                    .attr("x", xMenu)
-                    .attr("y", y + stdMenuHight*5)
-                    .attr("width", stdMenuWidth/3)
-                    .attr("height", stdMenuHight*2)
-                    .click(self.prevPage)
-                    .hover(hoverover, hoverout);
-
-                // append the svg
-                s.append(f);
-            });
-
-            // next icon
-            // load SVG image from resources
-            Snap.load("img/next.svg", function (f) {
-                // the group of paths in the image
-                var g = f.select("g");
-
-                // hover animation function
-                var hoverover = function () {
-                    g.animate({fill: '#bada55'}, 200)
-                };
-
-                // out hover animation function
-                var hoverout = function () {
-                    g.animate({fill: 'white'}, 200)
-                };
-
-                g.attr('fill', 'white');
-
-                // properties of loaded svg
-                f.select("svg")
-                    .attr("x", xMenu + stdMenuWidth*2/3)
-                    .attr("y", y + stdMenuHight*5)
-                    .attr("width", stdMenuWidth/3)
-                    .attr("height", stdMenuHight*2)
-                    .click(self.nextPage)
-                    .hover(hoverover, hoverout);
-
-                // append the svg
-                s.append(f);
-            });
-
-            // add icon
-            // load SVG image from resources
-            Snap.load("img/add.svg", function (f) {
-                // the group of paths in the image
-                var g = f.select("g");
-
-                // hover animation function
-                var hoverover = function () {
-                    g.animate({fill: '#bada55'}, 200)
-                };
-
-                // out hover animation function
-                var hoverout = function () {
-                    g.animate({fill: 'white'}, 200)
-                };
-
-                g.attr('fill', 'white');
-
-                // properties of loaded svg
-                f.select("svg")
-                    .attr("x", xMenu + stdMenuWidth/3)
-                    .attr("y", y + stdMenuHight*4)
-                    .attr("width", stdMenuWidth/3)
-                    .attr("height", stdMenuHight*2)
-                    .click(self.addPage)
-                    .hover(hoverover, hoverout);
-
-                // append the svg
-                s.append(f);
-            });
-
-            // delete icon
-            // load SVG image from resources
-            Snap.load("img/delete.svg", function (f) {
-                // the group of paths in the image
-                var g = f.select("g");
-
-                // hover animation function
-                var hoverover = function () {
-                    g.animate({fill: '#bada55'}, 200)
-                };
-
-                // out hover animation function
-                var hoverout = function () {
-                    g.animate({fill: 'white'}, 200)
-                };
-
-                g.attr('fill', 'white');
-
-                // properties of loaded svg
-                f.select("svg")
-                    .attr("x", xMenu + stdMenuWidth/3)
-                    .attr("y", y + stdMenuHight*6)
-                    .attr("width", stdMenuWidth/3)
-                    .attr("height", stdMenuHight*2)
-                    .click(self.removePage)
-                    .hover(hoverover, hoverout);
-
-                // append the svg
-                s.append(f);
-            });
-
-            // add four
-            hMenu += stdMenuHight*6;
+            return $('<div>')
+                .attr('class','menu-group')
+                .attr('style','position: absolute; top: ' + yMenu + 'px; left: ' + (xMenu+200) +'px;')
+                .append(createTextContainer("Window"))
+                .append(createButton('trash', self.removeSelectedWindow))
+                .append(createButton('arrows-alt', self.startEditWindow))
+                .append(createSeparator())
+                .append(createTextContainer("Page"))
+                .append(createButton('plus-circle', self.addPage))
+                .append(createButtonContainer()
+                    .append(createButton('chevron-circle-left', self.prevPage))
+                    .append(createTextContainer(pageNumberOf))
+                    .append(createButton('chevron-circle-right', self.nextPage)))
+                .append(createButton('minus-circle', self.removePage))
+                .append(createSeparator())
+                .append(createTextContainer("Blink"))
+                .append(createButtonContainer()
+                    .append(createButtonBlink('bullseye', 'blink-fixed', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_slow', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_medium', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_fast', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_very_fast', self.selectedBlink)))
+                .append(createTextContainer("Font"));
+        } else {
+            return $('<div>')
+                .attr('class','menu-group')
+                .attr('style','position: absolute; top: ' + yMenu + 'px; left: ' + (xMenu+200) +'px;')
+                .append(createTextContainer("Window"))
+                .append(createButton('trash', self.removeSelectedWindow))
+                .append(createButton('arrows-alt', self.startEditWindow))
+                .append(createSeparator())
+                .append(createButtonContainer()
+                    .append(createButton('fast-backward', self.speedDown))
+                    .append(createTextContainer(" Speed "))
+                    .append(createButton('fast-forward', self.speedUp)))
+                .append(createSeparator())
+                .append(createTextContainer("Character"));
         }
+    }
 
-        /*if (type === "scroll") {
-         hMenu = 100;
-         }
+    function createButtonBlink(icon, klass, actualBlink) {
+        var res = $('<div>');
+        return res
+            .attr('class','menu-button ' + klass + (actualBlink === klass? ' clicked': ''))
+            .on('click', function() {
+                res.parent().find('.clicked').removeClass('clicked');
+                res.addClass('clicked');
+                self.selectBlink(klass);
+            })
+            .append($('<i>')
+                .attr('class','button-icon fa fa-' + icon));
+    }
 
-         if (y + hMenu + r * 3 > self.size.height) {
-         yMenu = y - (hMenu) / 2 + contextHeight;
-         xMenu = x + w + contextWidth + r * 2;
-         }
-         if (yMenu + hMenu + r * 3 > self.size.height) {
-         yMenu = y - (hMenu - contextHeight);
-         xMenu = x + w + contextWidth + r * 2;
-         }*/
-         r /= 2;
+    function createButton(icon, func) {
+        return $('<div>')
+            .attr('class','menu-button')
+            .on('click',func)
+            .append($('<i>')
+                .attr('class','button-icon fa fa-' + icon));
+    }
 
-        // select menu group
-        var menuGroup = $(".menu-group");
+    function createButtonContainer() {
+        return $('<div>')
+            .attr('class','buttons-container')
+    }
 
-        // create menu path depending on the type
-        var menuPath = computeMenuPath(xMenu, yMenu, wMenu, hMenu, r);
-        var menu = self.SVG("path")
-            .attr("d", menuPath)
-            .attr("fill", "#666666")
-            .attr("fill-opacity", 0.9)
-            .attr("class", "menu")
-            .on("click", function (e) {
-                e.stopImmediatePropagation();
-            });
+    function createSeparator() {
+        return $('<div>')
+            .attr('class','buttons-separator')
+    }
 
-        // mark the menu as close
-        var c = menuGroup.attr("class") + " close-menu";
-        menuGroup.attr("class", c);
+    function createTextContainer(text) {
+        return $('<span>')
+            .attr('class','buttons-container-text')
+            .html(text);
+    }
 
-        menuGroup.append(menu);
-
+    function createSelectMenuContainer() {
+        return $('<div>')
+            .attr('class','buttons-container')
     }
 
     // ------------- Private Editor Tools -------------
