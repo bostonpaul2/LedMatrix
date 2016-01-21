@@ -46,6 +46,15 @@ LedMatrix = function (elemid, options) {
                 extent[1][0] = Math.max(p1 * Math.round(extent[1][0] / p1), extent[0][0] + p1 - self.options.offsetSize);
                 extent[1][1] = Math.max(p8 * Math.round(extent[1][1] / p8), extent[0][1] + p8 - self.options.offsetSize);
 
+                if (extent[1][0] >= self.size.width) {
+                    extent[0][0] -= p1;
+                    extent[1][0] -= p1;
+                }
+                if (extent[1][1] >= self.size.height) {
+                    extent[0][1] -= p8;
+                    extent[1][1] -= p8;
+                }
+
                 // applay snap
                 d3.select(this).transition()
                     .each("end", function () {
@@ -136,6 +145,8 @@ LedMatrix = function (elemid, options) {
                 .style("cursor", "default")
                 .on("mousedown.brush", function () {
                     d3.event.stopImmediatePropagation();
+                    stop = stopEdit();
+                    brushed();
                 })
                 .on("touchstart.brush", function () {
                     d3.event.stopImmediatePropagation();
@@ -155,6 +166,15 @@ LedMatrix = function (elemid, options) {
                 extent[0][1] = p8 * Math.round(extent[0][1] / p8) + self.options.offsetSize;
                 extent[1][0] = Math.max(p1 * Math.round(extent[1][0] / p1), extent[0][0] + p1 - self.options.offsetSize);
                 extent[1][1] = Math.max(p8 * Math.round(extent[1][1] / p8), extent[0][1] + p8 - self.options.offsetSize);
+
+                if (extent[1][0] >= self.size.width) {
+                    extent[0][0] -= p1;
+                    extent[1][0] -= p1;
+                }
+                if (extent[1][1] >= self.size.height) {
+                    extent[0][1] -= p8;
+                    extent[1][1] -= p8;
+                }
 
                 // apply snap
                 d3.select(this).transition()
@@ -191,7 +211,7 @@ LedMatrix = function (elemid, options) {
                 var message = $(".message");
 
                 message.attr("transform", function () {
-                    return "translate(" + brush.extent()[0][0] + "," + brush.extent()[0][1] + ")";
+                    return "translate(" + brush.extent()[0][0]  + "," + brush.extent()[0][1] + ")";
                 });
 
                 message.find(".char").each(function () {
@@ -326,7 +346,6 @@ LedMatrix = function (elemid, options) {
 
     // insert message in the selected window
     this.insertPageMessage = function () {
-        self.stopEditWindow();
         disableDeselectAll();
         enableStopMessage();
         if (!self.displayArea.select(".selectedWindow").empty()) {
@@ -351,7 +370,6 @@ LedMatrix = function (elemid, options) {
 
     // insert message in the selected window
     this.insertScrollMessage = function () {
-        self.stopEditWindow();
         disableDeselectAll();
         enableStopMessage();
         if (!self.displayArea.select(".selectedWindow").empty()) {
@@ -414,6 +432,7 @@ LedMatrix = function (elemid, options) {
         // Deleting all the hidden characters:
         $('.char-hidden').remove();
 
+        removeButtonsBar();
         startAnimation();
     };
 
@@ -502,6 +521,7 @@ LedMatrix = function (elemid, options) {
                 if (h > parseFloat(parent.attr("height")) + parseFloat(parent.attr("y"))) {
                     editable.attr("height", h - parseFloat(parent.attr("y")));
                     parent.attr("height", h - parseFloat(parent.attr("y")));
+                    adaptWindowPath();
                 }
 
                 $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize / 2, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize / 2, h, self.options.offsetSize * 2, "cursor"));
@@ -536,6 +556,7 @@ LedMatrix = function (elemid, options) {
                 if (h > parseFloat(parent.attr("height")) + parseFloat(parent.attr("y"))) {
                     editable.attr("height", h - parseFloat(parent.attr("y")));
                     parent.attr("height", h - parseFloat(parent.attr("y")));
+                    adaptWindowPath();
                 }
 
                 $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize, h, self.options.offsetSize * 2, "cursor"));
@@ -577,6 +598,9 @@ LedMatrix = function (elemid, options) {
         else {
             self.selectedFont = data.font[data.cursorIndex];
         }
+
+        var selection = $('.font-selection');
+        selection !== undefined ? selection.val(self.selectedFont.name) : null;
     };
 
     // Refreshing the cursor state:
@@ -628,6 +652,7 @@ LedMatrix = function (elemid, options) {
             self.cursorPageOn();
 
             writePageText(data.pages[data.selectedPage], loc);
+            refreshPageNumber();
         }
     };
 
@@ -651,6 +676,7 @@ LedMatrix = function (elemid, options) {
             self.cursorPageOn();
 
             writePageText(data.pages[data.selectedPage], loc);
+            refreshPageNumber();
         }
     };
 
@@ -670,6 +696,7 @@ LedMatrix = function (elemid, options) {
             self.cursorPageOn();
 
             writePageText(data.pages[data.selectedPage], loc);
+            refreshPageNumber();
         }
     };
 
@@ -689,6 +716,7 @@ LedMatrix = function (elemid, options) {
             self.cursorPageOn();
 
             writePageText(data.pages[data.selectedPage], loc);
+            refreshPageNumber();
         }
     };
 
@@ -726,8 +754,6 @@ LedMatrix = function (elemid, options) {
     // ------------- Do Stuff -------------
     // constant
     var DOUBLE_CLICK_TIME = 250;
-    var SELECTED_COLOR = "#bada55"
-    var UNSELECTED_COLOR = "#FFFFFF"
 
     // init some data
     var self = this;
@@ -809,8 +835,8 @@ LedMatrix = function (elemid, options) {
             d3.event.stopPropagation();
 
             if (dClick) {
-                deselectAllWindows();
                 d3.select(this).classed('selectedWindow', true);
+                addMenuBar();
                 if (d3.select(this).classed("page")) {
                     self.insertPageMessage();
                 } else {
@@ -819,13 +845,11 @@ LedMatrix = function (elemid, options) {
             } else {
                 if (d3.select(this).classed("selectedWindow")) {
                     d3.select(this).classed('selectedWindow', false);
-
                     removeButtonsBar();
-
                 } else {
                     deselectAllWindows();
                     d3.select(this).classed('selectedWindow', true);
-                    addButtonsBar();
+                    addMenuBar();
                 }
             }
         }
@@ -1017,13 +1041,14 @@ LedMatrix = function (elemid, options) {
                         data.selectedPage++;
                     }
                     writeAllPageText(data.pages[data.selectedPage], parent);
+                    refreshPageNumber();
                 }
             }
         });
     }
 
     // add buttons bar to the selected window
-    function addButtonsBar() {
+    function addMenuBar() {
         // window rect
         var win = $(".selectedWindow");
 
@@ -1059,38 +1084,16 @@ LedMatrix = function (elemid, options) {
                 })
         );
 
-        // TODO:sostituire SVG con font come nel div sottostante
+        // the div that contain svg
+        var ledMatrix = $(".ledMatrix");
 
-        // hamburger icon
-        var s = Snap(".context-menu");
-
-        // load SVG image from resources
-        Snap.load("img/menu.svg", function (f) {
-            // the group of paths in the image
-            var g = f.select("g");
-
-            // hover animation function
-            var hoverover = function () {
-                g.animate({transform: 's1.2,0,0t' + -self.options.border * 20 / self.options.pixelSize + "," + -self.options.border * 20 / self.options.pixelSize}, 500, mina.elastic)
-            };
-
-            // out hover animation function
-            var hoverout = function () {
-                g.animate({transform: 's1,0,0'}, 500, mina.elastic)
-            };
-
-            // properties of loaded svg
-            f.select("svg")
-                .attr("x", x + w + self.options.border / 2)
-                .attr("y", y)
-                .attr("width", self.options.border * 3)
-                .attr("height", self.options.border * 3)
-                .click(manageMenu)
-                .hover(hoverover, hoverout);
-
-            // append the svg
-            s.append(f);
-        });
+        //append into a div the menu icon
+        ledMatrix.append($('<div>')
+            .attr('class', 'menu-icon')
+            .attr('style', 'position: absolute; top: ' + (y + self.options.border) + 'px; left: ' + (x + w + self.options.border * 2 + 200) + 'px; width: ' + self.options.border * 3 + 'px; height: ' + self.options.border * 3 + 'px;')
+            .on('click', manageMenu)
+            .append($('<i>')
+                .attr('class', 'button-icon fa fa-bars')));
 
         // check type of needed menu
         var type = "page";
@@ -1099,10 +1102,28 @@ LedMatrix = function (elemid, options) {
         }
 
         //create the menu
-        var menuGroup = createMenu(x, y, w, h, self.options.border, type);
+        var menuGroup = createMenu(type);
 
         // append menu group
-        $('.ledMatrix').append(menuGroup);
+        ledMatrix.append(menuGroup);
+
+
+        // do math for position
+        var xMenu = x + w;
+        var yMenu = y;
+        var hMenu = menuGroup.height();
+
+        if (hMenu + yMenu <= self.size.height) {
+            xMenu += self.options.border;
+            yMenu += self.options.border * 4;
+        } else if (hMenu / 2 + yMenu <= self.size.height) {
+            xMenu += self.options.border * 5;
+            yMenu -= hMenu / 2 + self.options.border * 2;
+        } else {
+            xMenu += self.options.border * 5;
+            yMenu -= hMenu - self.options.border * 2;
+        }
+        menuGroup.attr('style', 'position: absolute; top: ' + yMenu + 'px; left: ' + (xMenu + 200) + 'px;');
 
         // move the selected window over
         g.appendTo(".displayArea");
@@ -1117,6 +1138,7 @@ LedMatrix = function (elemid, options) {
         var menu = $(".menu-group");
         var icon = $(".menu-icon");
         if (menu.css('display') === 'none') {
+            refreshPageNumber();
             menu.fadeIn(300);
             icon[0].classList.add('clicked');
         }
@@ -1128,7 +1150,7 @@ LedMatrix = function (elemid, options) {
 
     // remove buttons bar to the selected window
     function removeButtonsBar() {
-        $(".context-menu, .menu-group").remove();
+        $(".context-menu, .menu-group, .menu-icon").remove();
     }
 
     // stop editing window on double click on the svg brush
@@ -1171,108 +1193,166 @@ LedMatrix = function (elemid, options) {
         return pathOut + pathIn;
     }
 
-    function createMenu(x, y, w, h, r, type) {
-        // do math for position
-        var contextWidth = r * 3;
-        var contextHeight = r * 3;
-        var stdMenuHeight = r * 4;
-        var stdMenuWidth = stdMenuHeight * 6;
-        var xMenu = x + w + r;
-        var yMenu = y + contextHeight + r;
-        var wMenu = stdMenuWidth;
-        var hMenu = 0;
+    function adaptWindowPath() {
+        // window svg that contain rect and chars
+        var svg = $(".selectedWindow").parent();
 
+        // window dimension
+        var x = parseFloat(svg.attr("x"));
+        var y = parseFloat(svg.attr("y"));
+        var w = parseFloat(svg.attr("width"));
+        var h = parseFloat(svg.attr("height"));
+
+        // computed window border
+        var borderPath = computeBorderPath(x, y, w, h, self.options.border);
+
+        $(".bar").attr("d", borderPath);
+    }
+
+    function refreshPageNumber() {
+        var win = d3.select('.selectedWindow');
+
+        if (!win.empty()) {
+            var data = d3.select('.selectedWindow').datum();
+            var pageNumberOf = " " + (data.selectedPage + 1) + "/" + data.pages.length + " ";
+            var numb = $(".page-number");
+
+            if (numb !== undefined) numb.html(pageNumberOf);
+        }
+
+    }
+
+    function createMenu(type) {
         var data = d3.select('.selectedWindow').datum();
         var pageNumberOf = " " + (data.selectedPage + 1) + "/" + data.pages.length + " ";
 
+        var selectFontMenu = createSelectMenu("font-selection");
+
+        // TODO: idea di cosa fare una volta che ho la lista in ajax
+        for (var fontName in self.fontManager.getFonts()) {
+            selectFontMenu.append(addOptionSelect(fontName));
+        }
+        selectFontMenu.val(self.selectedFont.name);
+
+        var ret = $('<div>')
+            .attr('class', 'menu-group')
+            .append(createTextContainer("Window", null))
+            .append(createButton('trash', self.removeSelectedWindow))
+            .append(createButton('arrows-alt', self.startEditWindow))
+            .append(createSeparator());
+
         if (type === "page") {
-            return $('<div>')
-                .attr('class','menu-group')
-                .attr('style','position: absolute; top: ' + yMenu + 'px; left: ' + (xMenu+200) +'px;')
-                .append(createTextContainer("Window"))
-                .append(createButton('trash', self.removeSelectedWindow))
-                .append(createButton('arrows-alt', self.startEditWindow))
+            ret.append(createTextContainer("Page duration:", null))
+                .append(createButtonContainer()
+                    .append(createTextContainer("1s ", null))
+                    .append(createSelector(1, 60, data.duration))
+                    .append(createTextContainer(" 60s", null)))
                 .append(createSeparator())
-                .append(createTextContainer("Page"))
+                .append(createTextContainer("Page control:", null))
                 .append(createButton('plus-circle', self.addPage))
                 .append(createButtonContainer()
                     .append(createButton('chevron-circle-left', self.prevPage))
-                    .append(createTextContainer(pageNumberOf))
+                    .append(createTextContainer(pageNumberOf, "page-number"))
                     .append(createButton('chevron-circle-right', self.nextPage)))
-                .append(createButton('minus-circle', self.removePage))
-                .append(createSeparator())
-                .append(createTextContainer("Blink"))
-                .append(createButtonContainer()
-                    .append(createButtonBlink('bullseye', 'blink-fixed', self.selectedBlink))
-                    .append(createButtonBlink('bullseye', 'blink-sim_slow', self.selectedBlink))
-                    .append(createButtonBlink('bullseye', 'blink-sim_medium', self.selectedBlink))
-                    .append(createButtonBlink('bullseye', 'blink-sim_fast', self.selectedBlink))
-                    .append(createButtonBlink('bullseye', 'blink-sim_very_fast', self.selectedBlink)))
-                .append(createTextContainer("Font"));
+                .append(createButton('minus-circle', self.removePage));
         } else {
-            return $('<div>')
-                .attr('class','menu-group')
-                .attr('style','position: absolute; top: ' + yMenu + 'px; left: ' + (xMenu+200) +'px;')
-                .append(createTextContainer("Window"))
-                .append(createButton('trash', self.removeSelectedWindow))
-                .append(createButton('arrows-alt', self.startEditWindow))
-                .append(createSeparator())
-                .append(createButtonContainer()
-                    .append(createButton('fast-backward', self.speedDown))
-                    .append(createTextContainer(" Speed "))
-                    .append(createButton('fast-forward', self.speedUp)))
-                .append(createSeparator())
-                .append(createTextContainer("Character"));
+            ret.append(createButtonContainer()
+                .append(createButton('fast-backward', self.speedDown))
+                .append(createTextContainer(" Speed ", null))
+                .append(createButton('fast-forward', self.speedUp)));
         }
+
+        ret.append(createSeparator())
+            .append(createTextContainer("Blink", null))
+            .append(createButtonContainer()
+                .append(createButtonBlink('bullseye', 'blink-fixed', self.selectedBlink))
+                .append(createButtonBlink('bullseye', 'blink-sim_slow', self.selectedBlink))
+                .append(createButtonBlink('bullseye', 'blink-sim_medium', self.selectedBlink))
+                .append(createButtonBlink('bullseye', 'blink-sim_fast', self.selectedBlink))
+                .append(createButtonBlink('bullseye', 'blink-sim_very_fast', self.selectedBlink)))
+            .append(createSeparator())
+            .append(createTextContainer("Font", null))
+            .append(createSelectMenuContainer()
+                .append(selectFontMenu));
+
+        return ret;
     }
 
     function createButtonBlink(icon, klass, actualBlink) {
         var res = $('<div>');
         return res
-            .attr('class','menu-button ' + klass + (actualBlink === klass? ' clicked': ''))
-            .on('click', function() {
+            .attr('class', 'menu-button ' + klass + (actualBlink === klass ? ' clicked' : ''))
+            .on('click', function () {
                 res.parent().find('.clicked').removeClass('clicked');
                 res.addClass('clicked');
                 self.selectBlink(klass);
             })
             .append($('<i>')
-                .attr('class','button-icon fa fa-' + icon));
+                .attr('class', 'button-icon fa fa-' + icon));
     }
 
     function createButton(icon, func) {
         return $('<div>')
-            .attr('class','menu-button')
-            .on('click',func)
+            .attr('class', 'menu-button')
+            .on('click', func)
             .append($('<i>')
-                .attr('class','button-icon fa fa-' + icon));
+                .attr('class', 'button-icon fa fa-' + icon));
+    }
+
+    function createSelector(min, max, value) {
+        return $('<input>')
+            .attr('class', 'menu-slider')
+            .attr('type', 'range')
+            .attr('value', value)
+            .attr('min', min)
+            .attr('max', max)
+            .on('change', function () {
+                self.pageDuration(parseInt(this.value));
+            })
     }
 
     function createButtonContainer() {
         return $('<div>')
-            .attr('class','buttons-container')
+            .attr('class', 'buttons-container')
     }
 
     function createSeparator() {
         return $('<div>')
-            .attr('class','buttons-separator')
+            .attr('class', 'buttons-separator')
     }
 
-    function createTextContainer(text) {
+    function createTextContainer(text, klass) {
         return $('<span>')
-            .attr('class','buttons-container-text')
+            .attr('class', 'buttons-container-text no_selection ' + (klass !== null ? klass : ''))
             .html(text);
     }
 
     function createSelectMenuContainer() {
         return $('<div>')
-            .attr('class','buttons-container')
+            .attr('class', 'select-menu-container');
     }
 
-    // ------------- Private Editor Tools -------------
+    function createSelectMenu(klass) {
+        return $('<select>')
+            .attr('class', 'select-menu font ' + (klass !== null ? klass : ''))
+            .on('change', function () {
+                self.selectFont(this.value);
+                $(".textEdit").focus();
+            });
+    }
+
+    function addOptionSelect(value) {
+        return ($('<option>')
+            .attr('class', 'select-option')
+            .attr('value', value)
+            .html(value));
+    }
+
+// ------------- Private Editor Tools -------------
     var mousetrap = new Mousetrap();
 
-    // bind keys
-    // numbers
+// bind keys
+// numbers
     mousetrap.bind('0', function (e, n) {
         keyboardAscii(e, n);
     });
@@ -1304,7 +1384,7 @@ LedMatrix = function (elemid, options) {
         keyboardAscii(e, n);
     });
 
-    // lowercase letters
+// lowercase letters
     mousetrap.bind('a', function (e, n) {
         keyboardAscii(e, n);
     });
@@ -1384,7 +1464,7 @@ LedMatrix = function (elemid, options) {
         keyboardAscii(e, n);
     });
 
-    // uppercase letters
+// uppercase letters
     mousetrap.bind('A', function (e, n) {
         keyboardAscii(e, n);
     });
@@ -1464,7 +1544,7 @@ LedMatrix = function (elemid, options) {
         keyboardAscii(e, n);
     });
 
-    // symbols
+// symbols
     mousetrap.bind('\\', function (e, n) {
         keyboardAscii(e, n);
     });
@@ -1559,7 +1639,7 @@ LedMatrix = function (elemid, options) {
         keyboardAscii(e, " ");
     });
 
-    // bind arrows
+// bind arrows
     mousetrap.bind('left', function (e, n) {
         keyboardArrow(e, n);
     });
@@ -1573,7 +1653,7 @@ LedMatrix = function (elemid, options) {
         keyboardArrow(e, n);
     });
 
-    // bind control
+// bind control
     mousetrap.bind('backspace', function (e, n) {
         keyboardControl(e, n);
     });
@@ -1602,7 +1682,7 @@ LedMatrix = function (elemid, options) {
         keyboardControl(e, n);
     });
 
-    // disabled control
+// disabled control
     mousetrap.bind('shift+space', function (e, n) {
         e.preventDefault();
         console.log("disabled: " + n);
@@ -1610,7 +1690,7 @@ LedMatrix = function (elemid, options) {
     });
 
 
-    // unused control
+// unused control
     /*
      mousetrap.bind('pageup', function (e, n) {keyboardControl(e, n);});
      mousetrap.bind('pagedown', function (e, n) {keyboardControl(e, n);});
@@ -1623,7 +1703,7 @@ LedMatrix = function (elemid, options) {
      */
 
 
-    // start text editing
+// start text editing
     function keyboardAscii(e, n) {
         // stop the event propagation
         e.preventDefault();
@@ -1667,7 +1747,7 @@ LedMatrix = function (elemid, options) {
         }
     }
 
-    // control detection
+// control detection
     function keyboardControl(e, n) {
         // stop the event propagation
         e.preventDefault();
@@ -1768,7 +1848,7 @@ LedMatrix = function (elemid, options) {
         }
     }
 
-    // move arrow detection
+// move arrow detection
     function keyboardArrow(e, n) {
         // stop the event propagation
         e.preventDefault();
@@ -1988,12 +2068,13 @@ LedMatrix = function (elemid, options) {
         }
     }
 
-    // ------------- SVG Tools -------------
+// ------------- SVG Tools -------------
     function writePageText(data, location) {
         var area = location.find(".textEdit");
         var parent = area.parent();
         var x = parseFloat(area.attr("x"));
         var y = parseFloat(area.attr("y"));
+        var yParent = parseFloat(area.parent().attr("y"));
         var w = parseFloat(area.attr("width"));
         var h = parseFloat(area.attr("height"));
         var xPos = x;
@@ -2088,10 +2169,11 @@ LedMatrix = function (elemid, options) {
         // adapt window height
         if (yPos >= y + h) {
             // check window height
-            if (!(yPos > self.size.height)) {
+            if (!(yPos + yParent > self.size.height)) {
                 // if is possible enlarge
                 area.attr("height", yPos - y - self.options.offsetSize);
                 parent.attr("height", yPos - y - self.options.offsetSize);
+                adaptWindowPath();
             } else {
                 // if is not possible enlarge height flag to cancel the inserted char
                 cancel = true;
@@ -2284,6 +2366,7 @@ LedMatrix = function (elemid, options) {
                     // if is possible enlarge
                     area.attr("height", maxH - y - self.options.offsetSize);
                     location.attr("height", maxH - y - self.options.offsetSize);
+                    adaptWindowPath();
                 } else {
                     // if is not possible enlarge height flag to cancel the inserted char
                     area.attr("y", y - maxH);
@@ -2302,7 +2385,8 @@ LedMatrix = function (elemid, options) {
         });
     }
 
-};
+}
+;
 
 // ------------- Data type -------------
 // An SVG element:
@@ -2468,6 +2552,9 @@ LedMatrix.prototype.FontManager = function () {
         agla16: this.Font('agla16', '{"font":{"glyphs":{"glyph":[{"@chr":"34","map":{"@width":"5","@height":"8","@type":"BINARY","$":"00010000010101000101010000010000000000000000000000000000000000000000000000000000"}},{"@chr":"35","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000000000000000000000000001010001010000000001010001010000010101010101010101010101010101010101000001010001010000000001010001010000010101010101010101010101010101010101000001010001010000000001010001010000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"32","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"33","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0101010101010101010101010101010101010101000000000101010100000000"}},{"@chr":"38","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000000001010000000000000100000100000000000100000100000000000100000100000000000001010000000000000001010000000000000100000100000000010000000001000001010000000000010100010000000000010100010000000001000001000101010100000001000000000000000000000000000000000000000000000000000000"}},{"@chr":"39","map":{"@width":"2","@height":"8","@type":"BINARY","$":"01010101000101000000000000000000"}},{"@chr":"36","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000010001000000000000010001000000000000010001000000000101010101010100010101010101010101010100010001000000010101010101010100000101010101010101000000010001000001010101010101010101000101010101010100000000010001000000000000010001000000000000010001000000000000000000000000000000000000000000"}},{"@chr":"37","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000010100000000000101010100000000000101000000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000000010100000000000101010100000000000101000000000000000000000000000000000000000000000000000000"}},{"@chr":"42","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000000000000100000000010000000100000001000100000100000100000001000100010000000000010101000000010101010101010101000000010101000000000001000100010000000100000100000100010000000100000001000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"43","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000000101000000000000010100000000000001010000000101010101010101010101010101010100000001010000000000000101000000000000010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"40","map":{"@width":"3","@height":"16","@type":"BINARY","$":"000001000101010100010100010100010100010100010100010100010100010100010100000101000001000000000000"}},{"@chr":"41","map":{"@width":"3","@height":"16","@type":"BINARY","$":"010000010100000101000101000101000101000101000101000101000101000101000101010100010000000000000000"}},{"@chr":"46","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000010101010000000000000000"}},{"@chr":"47","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000101000000000000000101000000000000000101000000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000000010100000000000000010100000000000000010100000000000000000000000000000000000000000000000000"}},{"@chr":"44","map":{"@width":"3","@height":"16","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000101000101000101010100000000000000000000"}},{"@chr":"45","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"51","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101000000000000000101000000000000010101000000010101010100000000010101010100000000000000010101000000000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"50","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101000000000000000101000000000000010101000000000001010100000000000101010000000000010101000000000001010100000000000101010000000000010101000000000000010101010101010101010101010101010101000000000000000000000000000000000000"}},{"@chr":"49","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000101000000000000010101000000000001010101000000000001010101000000000000000101000000000000000101000000000000000101000000000000000101000000000000000101000000000000000101000000000000000101000000000000000101000000000000000101000000000000000101000000000000000000000000000000000000000000"}},{"@chr":"48","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"55","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010101010101010101010101000000000000000101000000000000000101000000000000010100000000000000010100000000000001010000000000000101000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000000000000000000000000000000000"}},{"@chr":"54","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010100000000000101010100000000000000010100000000000000010100010101010000010101010101010100010101000000010101010100000000000101010100000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"53","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010101010101010101010101010100000000000000010100000000000000010100000000000000010101010101010000010101010101010100000000000000010101000000000000000101000000000000000101000000000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"52","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000010100000000000001010100000000000101010100000000010101010100000001010100010100000101010000010100010101000000010100010100000000010100010101010101010101010101010101010101000000000000010100000000000000010100000000000000010100000000000000010100000000000000000000000000000000000000"}},{"@chr":"59","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0000000000000000000001010101000000000000010101010001010000000000"}},{"@chr":"58","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0000000000000000000001010101000000000000010101010000000000000000"}},{"@chr":"57","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000101010100000000000101010101000000010101000101010101010101000001010101000101000000000000000101000000000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"56","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010101000000010101000101010101010100000001010101010000000101010101010100010101000000010101010100000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"63","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000010101010000000101010101010001010100000101010101000000000101000000000001010000000000010100000000000101000000000000010100000000000001010000000000000101000000000000000000000000000000000000000000000101000000000000010100000000000000000000000000000000000000"}},{"@chr":"62","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000000101010000000000000001010100000000000000010101000000000000000101010000000000000001010100010101010101010101010101010101010101000000000001010100000000000101010000000000010101000000000001010100000000000101010000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"61","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000000000000000000000000000000000000000000000000000000000010101010101010101010101010101010101000000000000000000000000000000000000010101010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"60","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000000000000000000000000001010100000000000101010000000000010101000000000001010100000000000101010000000000010101010101010101010101010101010101000101010000000000000001010100000000000000010101000000000000000101010000000000000001010100000000000000000000000000000000000000000000000000000000"}},{"@chr":"68","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010000010101010101010100010100000000010101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000010101010101010101010100010101010101010000000000000000000000000000000000000000"}},{"@chr":"69","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010101010101010101010101010100000000000000010100000000000000010100000000000000010100000000000000010101010101010000010101010101010000010100000000000000010100000000000000010100000000000000010100000000000000010101010101010101010101010101010101000000000000000000000000000000000000"}},{"@chr":"70","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010101010101010101010101010100000000000000010100000000000000010100000000000000010101010101010000010101010101010000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000000000000000000000000000000000000000"}},{"@chr":"71","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000000010100000000000000010100000000000000010100000001010101010100000001010101010100000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"64","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000101010100000000000101010100010101010101010100010101010100010100000000000000010100000000000000010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"65","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000000010101000000000001010101010000000101000000010100010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010101010101010101010101010101010101010100000000000101010100000000000101010100000000000101010100000000000101000000000000000000000000000000000000"}},{"@chr":"66","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010000010101010101010100010100000000010100010100000000010100010100000000010100010101010101010000010101010101010100010100000000010101010100000000000101010100000000000101010100000000000101010100000000010101010101010101010100010101010101010000000000000000000000000000000000000000"}},{"@chr":"67","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"76","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010101010101010101010101010101010101000000000000000000000000000000000000"}},{"@chr":"77","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000101010101000000010101010101010001010101010101010101010101010100010101000101010100000100000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101000000000000000000000000000000000000"}},{"@chr":"78","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000101010100000000000101010101000000000101010101000000000101010101010000000101010100010100000101010100010101000101010100000101000101010100000001010101010100000000010101010100000000010101010100000000000101010100000000000101010100000000000101000000000000000000000000000000000000"}},{"@chr":"79","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"72","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010101010101010101010101010101010101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101000000000000000000000000000000000000"}},{"@chr":"73","map":{"@width":"6","@height":"16","@type":"BINARY","$":"000101010100000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000001010000000101010100000000000000000000000000"}},{"@chr":"74","map":{"@width":"6","@height":"16","@type":"BINARY","$":"000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000010101010101010100010101010000000000000000000000000000"}},{"@chr":"75","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000000010100000000000100010100000000010100010100000001010000010100000101000000010100010100000000010101010000000000010101010100000000010100010101000000010100000101010000010100000001010100010100000000010101010100000000000101010100000000000101000000000000000000000000000000000000"}},{"@chr":"85","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"84","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0101010101010101010101010101010100000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000000000000000000000000000000"}},{"@chr":"87","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000100000101010100000100000101010100000100000101010100000100000101010100000100000101010100010101000101010101010101010101010100010101000101010000000100000001000000000000000000000000000000000000"}},{"@chr":"86","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101000101000000010100000001010101010000000000010101000000000000000100000000000000000000000000000000000000000000"}},{"@chr":"81","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100000000000101010100010100000101010100000101000101010101000001010101000101010101010100000001010101000101000000000000000000000000000000000000"}},{"@chr":"80","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010000010101010101010100010100000000010101010100000000000101010100000000000101010100000000010101010101010101010100010101010101010000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000010100000000000000000000000000000000000000000000000000"}},{"@chr":"83","map":{"@width":"9","@height":"16","@type":"BINARY","$":"000001010101010000000101010101010100010101000000010101010100000000000101010100000000000000010101000000000000000101010101010000000001010101010100000000000000010101000000000000000101010100000000000101010101000000010101000101010101010100000001010101010000000000000000000000000000000000000000"}},{"@chr":"82","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010000010101010101010100010100000000010101010100000000000101010100000000000101010100000000010101010101010101010100010101010101010000010100000001010100010100000000010101010100000000000101010100000000000101010100000000000101010100000000000101000000000000000000000000000000000000"}},{"@chr":"93","map":{"@width":"6","@height":"16","@type":"BINARY","$":"010101010101010101010101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101000000000101010101010101010101010101000000000000000000000000"}},{"@chr":"92","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000010100000000000001010000000000000101000000000000000101000000000000000101000000000000000101000000000000010100000000000000010100000000000001010000000000000001010000000000000001010000000000000101000000000000010100000000000000000000000000000000"}},{"@chr":"95","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000101010101010101010101010101010100000000000000000000000000000000"}},{"@chr":"94","map":{"@width":"8","@height":"8","@type":"BINARY","$":"00000001010000000000010101010000000101000001010001010000000001010000000000000000000000000000000000000000000000000000000000000000"}},{"@chr":"89","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0101000000000101010100000000010101010000000001010101000000000101010100000000010100010100000101000000010101010000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000000000000000000000000000000"}},{"@chr":"88","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010100000000000101010100000000000101010100000000000101010100000000000101000101000000010100000001010001010000000000010101000000000000010101000000000001010001010000000101000000010100010100000000000101010100000000000101010100000000000101010100000000000101000000000000000000000000000000000000"}},{"@chr":"91","map":{"@width":"6","@height":"16","@type":"BINARY","$":"010101010101010101010101010100000000010100000000010100000000010100000000010100000000010100000000010100000000010100000000010100000000010100000000010101010101010101010101000000000000000000000000"}},{"@chr":"90","map":{"@width":"9","@height":"16","@type":"BINARY","$":"010101010101010101010101010101010101000000000000010101000000000001010100000000000101010000000000000101010000000000010101000000000001010100000000000101010000000000000101010000000000010101000000000000010100000000000000010101010101010101010101010101010101000000000000000000000000000000000000"}},{"@chr":"102","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000101010000000001010101000000000101000000000001010101010000000101010101000000000101000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000101000000000000010100000000000001010000000000000000000000000000000000000000"}},{"@chr":"103","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000001010100010100010101010101010101010000010101010100000000010101010000000001010101000000000101010101000001010100010101010101010000010101000101000000000000010100000000000001010001010101010100000001010101000000000000000000000000000000000000"}},{"@chr":"100","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000101000000000000010100000000000001010000000000000101000000000000010100000101010001010001010101010101010101000001010101010000000001010101000000000101010100000000010101010100000101010001010101010101000001010100010100000000000000000000000000000000"}},{"@chr":"101","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000010101010000000101010101010001010000000001010101000000000101010101010101010101010101010101010101000000000000010100000000000001010100000001010001010101010100000001010101000000000000000000000000000000000000"}},{"@chr":"98","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0101000000000000010100000000000001010000000000000101000000000000010100000000000001010001010100000101010101010100010101000001010101010000000001010101000000000101010100000000010101010100000101010101010101010100010100010101000000000000000000000000000000000000"}},{"@chr":"99","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000010101010000000101010101010001010100000101010101000000000000010100000000000001010000000000000101000000000000010100000000000001010100000101010001010101010100000001010101000000000000000000000000000000000000"}},{"@chr":"96","map":{"@width":"2","@height":"8","@type":"BINARY","$":"01010101000101000000000000000000"}},{"@chr":"97","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000001010101010100010101010101010100000000000001010000000000000101000101010101010101010101010001010101000000000101010100000000010101010000000001010101010101010101000101010100010100000000000000000000000000000000"}},{"@chr":"110","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101000101010100010101010101010101010100000001010101000000000101010100000000010101010000000001010101000000000101010100000000010101010000000001010101000000000101010100000000010100000000000000000000000000000000"}},{"@chr":"111","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000000010101010000000101010101010001010100000101010101000000000101010100000000010101010000000001010101000000000101010100000000010101010100000101010001010101010100000001010101000000000000000000000000000000000000"}},{"@chr":"108","map":{"@width":"4","@height":"16","@type":"BINARY","$":"00010100000101000001010000010100000101000001010000010100000101000001010000010100000101000001010000010100000101000000000000000000"}},{"@chr":"109","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101010001010100010101010101010101010001010001010101000101000101010100010100010101010001010001010101000101000101010100010100010101010001010001010101000101000101010100010100010100000000000000000000000000000000"}},{"@chr":"106","map":{"@width":"5","@height":"16","@type":"BINARY","$":"0000000000000000010100000001010000000000000000010100000001010000000101000000010100000001010000000101000000010100000101010101010100010101000000000000000000000000"}},{"@chr":"107","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101000000010100010100000001010001010000010100000101000101000000010101010000000001010101000000000101000101000000010100000101000001010000000101000101000000010101010100000000010100000000000000000000000000000000"}},{"@chr":"104","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0101000000000000010100000000000001010000000000000101000000000000010100000000000001010001010101000101010101010101010101000000010101010000000001010101000000000101010100000000010101010000000001010101000000000101010100000000010100000000000000000000000000000000"}},{"@chr":"105","map":{"@width":"4","@height":"16","@type":"BINARY","$":"00000000000101000001010000000000000101000001010000010100000101000001010000010100000101000001010000010100000101000000000000000000"}},{"@chr":"119","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101000000000101010100000000010101010000000001010101000101000101010100010100010101010001010001010101000101000101010100010100010101010101010101010101000101000101000100010100010000000000000000000000000000000000"}},{"@chr":"118","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101000000000101010100000000010101010000000001010101000000000101010100000000010101010000000001010101000000000101010100000000010100010100000101000000010101010000000000010100000000000000000000000000000000000000"}},{"@chr":"117","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101000000000101010100000000010101010000000001010101000000000101010100000000010101010000000001010101000000000101010100000000010101010000000101010101010101010101000101010100010100000000000000000000000000000000"}},{"@chr":"116","map":{"@width":"7","@height":"16","@type":"BINARY","$":"00000000000000000001010000000000010100000000000101000000000101010101000001010101010000000101000000000001010000000000010100000000000101000000000001010000000000010100000000000101010100000000010101000000000000000000000000000000"}},{"@chr":"115","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000001010101010100010101010101010101010000000000000101000000000000010101010101010000010101010101010000000000000101000000000000010100000000000001010101010101010101000101010101010000000000000000000000000000000000"}},{"@chr":"114","map":{"@width":"6","@height":"16","@type":"BINARY","$":"000000000000000000000000000000000000010100010101010101010101010101000000010101000000010100000000010100000000010100000000010100000000010100000000010100000000010100000000000000000000000000000000"}},{"@chr":"113","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000001010100010100010101010101010101010000010101010100000000010101010000000001010101000000000101010101000001010100010101010101010000010101000101000000000000010100000000000001010000000000000101000000000000010100000000000000000000000000000000"}},{"@chr":"112","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000010100010101000001010101010101000101010000010101010100000000010101010000000001010101000000000101010101000001010101010101010101000101000101010000010100000000000001010000000000000101000000000000010100000000000000000000000000000000000000000000"}},{"@chr":"125","map":{"@width":"7","@height":"16","@type":"BINARY","$":"01010100000000000001010000000000000101000000000001010000000000010100000000000101000000000001010000000000000101010000000101000000000001010000000000010100000000000101000000000101000000010101000000000000000000000000000000000000"}},{"@chr":"124","map":{"@width":"2","@height":"16","@type":"BINARY","$":"0101010101010101010100000000000000000101010101010101010100000000"}},{"@chr":"123","map":{"@width":"7","@height":"16","@type":"BINARY","$":"00000000010101000000010100000000010100000000000101000000000001010000000000010100000000000101000000010101000000000000010100000000000101000000000001010000000000010100000000000001010000000000000101010000000000000000000000000000"}},{"@chr":"122","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101010101010101010101010101010100000000000001010000000000010100000000000101000000000001010000000000010100000000000101000000000001010000000000000101010101010101010101010101010100000000000000000000000000000000"}},{"@chr":"121","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101000000000101010100000000010101010000000001010101000000000101010101000001010100010101010101010000010101000101000000000000010100000000000001010001010101010100000001010101000000000000000000000000000000000000"}},{"@chr":"120","map":{"@width":"8","@height":"16","@type":"BINARY","$":"0000000000000000000000000000000000000000000000000101000000000101010100000000010101010000000001010001010000010100000001010101000000000001010000000000010101010000000101000001010001010000000001010101000000000101010100000000010100000000000000000000000000000000"}}]}}}')
     };
     return {
+        getFonts: function () {
+            return fonts;
+        },
         getFont: function (name) {
             // Checking the name:
             if (name === undefined) {
