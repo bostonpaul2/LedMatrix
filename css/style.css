@@ -126,7 +126,7 @@
     display: inline-block;
 }
 
-span.no_selection {
+span.no_selection, select.no_selection {
     -webkit-user-select: none; /* webkit (safari, chrome) browsers */
     -moz-user-select: none; /* mozilla browsers */
     -ms-user-select: none; /* IE10+ */
@@ -180,7 +180,7 @@ span.no_selection {
 .blink-fixed {
 }
 
-.blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
+.blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow, .blink-cursor {
     -webkit-animation-timing-function: linear;
     -webkit-animation-iteration-count: infinite;
     -moz-animation-timing-function: linear;
@@ -189,10 +189,16 @@ span.no_selection {
     animation-iteration-count: infinite;
 }
 
+.blink-cursor {
+    -webkit-animation-duration: 0.7s;
+    -moz-animation-duration: 0.7s;
+    animation-duration: 0.7s;
+}
+
 .blink-sim_slow {
-    -webkit-animation-duration: 0.8s;
-    -moz-animation-duration: 0.8s;
-    animation-duration: 0.8s;
+     -webkit-animation-duration: 0.8s;
+     -moz-animation-duration: 0.8s;
+     animation-duration: 0.8s;
 }
 
 .blink-sim_medium {
@@ -213,7 +219,7 @@ span.no_selection {
     animation-duration: 0.2s;
 }
 
-.blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow {
+.blink-sim_very_fast, .blink-sim_fast, .blink-sim_medium, .blink-sim_slow, .blink-cursor {
     -webkit-animation-name: blinker;
     -moz-animation-name: blinker;
     animation-name: blinker;

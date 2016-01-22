@@ -7,6 +7,37 @@ LedMatrix = function (elemid, options) {
     // ------------- Public Tools -------------
     // add an editable windows
     this.addWindow = function (type) {
+
+        // function that snap to grid the drawn area
+        function brushed() {
+            // snap to grid math
+            var extent = brush.extent();
+            var p1 = self.options.totPixelSize;
+            var p8 = self.options.totPixelSize * 8;
+            extent[0][0] = p1 * Math.round(extent[0][0] / p1) + self.options.offsetSize;
+            extent[0][1] = p8 * Math.round(extent[0][1] / p8) + self.options.offsetSize;
+            extent[1][0] = Math.max(p1 * Math.round(extent[1][0] / p1), extent[0][0] + p1 - self.options.offsetSize);
+            extent[1][1] = Math.max(p8 * Math.round(extent[1][1] / p8), extent[0][1] + p8 - self.options.offsetSize);
+
+            if (extent[1][0] >= self.size.width) {
+                extent[0][0] -= p1;
+                extent[1][0] -= p1;
+            }
+            if (extent[1][1] >= self.size.height) {
+                extent[0][1] -= p8;
+                extent[1][1] -= p8;
+            }
+
+            // applay snap
+            d3.select(this).transition()
+                .each("end", function () {
+                    if (stop) {
+                        self.stopEditWindow();
+                    }
+                })
+                .call(brush.extent(extent));
+        }
+
         if (self.displayArea.select(".textEdit").empty() && self.displayArea.select(".editingWindow").empty()) {
             // deselect all windows
             d3.selectAll(".selectedWindow").classed('selectedWindow', false);
@@ -35,35 +66,6 @@ LedMatrix = function (elemid, options) {
             self.displayArea.select("rect.extent")
                 .classed(type, true);
 
-            // function that snap to grid the drawn area
-            function brushed() {
-                // snap to grid math
-                var extent = brush.extent();
-                var p1 = self.options.totPixelSize;
-                var p8 = self.options.totPixelSize * 8;
-                extent[0][0] = p1 * Math.round(extent[0][0] / p1) + self.options.offsetSize;
-                extent[0][1] = p8 * Math.round(extent[0][1] / p8) + self.options.offsetSize;
-                extent[1][0] = Math.max(p1 * Math.round(extent[1][0] / p1), extent[0][0] + p1 - self.options.offsetSize);
-                extent[1][1] = Math.max(p8 * Math.round(extent[1][1] / p8), extent[0][1] + p8 - self.options.offsetSize);
-
-                if (extent[1][0] >= self.size.width) {
-                    extent[0][0] -= p1;
-                    extent[1][0] -= p1;
-                }
-                if (extent[1][1] >= self.size.height) {
-                    extent[0][1] -= p8;
-                    extent[1][1] -= p8;
-                }
-
-                // applay snap
-                d3.select(this).transition()
-                    .each("end", function () {
-                        if (stop) {
-                            self.stopEditWindow();
-                        }
-                    })
-                    .call(brush.extent(extent));
-            }
 
         } else if (!self.displayArea.select(".selectedWindow").empty()) {
             alert("deselect window before adding new one!");
@@ -74,7 +76,77 @@ LedMatrix = function (elemid, options) {
 
     // start edit the window
     this.startEditWindow = function () {
-        if (!self.displayArea.select(".selectedWindow").empty()) {
+        // function that snap to grid the drawn area
+        function brushed() {
+            // copy the data contained in the old window
+            var data = [self.displayArea.select("rect.extent").datum()];
+
+            // snap to grid math
+            var extent = brush.extent();
+            var p1 = self.options.totPixelSize;
+            var p8 = self.options.totPixelSize * 8;
+            extent[0][0] = p1 * Math.round(extent[0][0] / p1) + self.options.offsetSize;
+            extent[0][1] = p8 * Math.round(extent[0][1] / p8) + self.options.offsetSize;
+            extent[1][0] = Math.max(p1 * Math.round(extent[1][0] / p1), extent[0][0] + p1 - self.options.offsetSize);
+            extent[1][1] = Math.max(p8 * Math.round(extent[1][1] / p8), extent[0][1] + p8 - self.options.offsetSize);
+
+            if (extent[1][0] >= self.size.width) {
+                extent[0][0] -= p1;
+                extent[1][0] -= p1;
+            }
+            if (extent[1][1] >= self.size.height) {
+                extent[0][1] -= p8;
+                extent[1][1] -= p8;
+            }
+
+            // apply snap
+            d3.select(this).transition()
+                .each("end", function () {
+                    if (stop) {
+                        self.stopEditWindow();
+                    }
+                })
+                .call(brush.extent(extent));
+
+
+            // append the data in the new window
+            self.displayArea.select("rect.extent")
+                .data(data)
+                .enter()
+                .append("rect");
+
+            var message = $(".message");
+
+            message.attr("transform", function () {
+                return "translate(" + brush.extent()[0][0] + "," + brush.extent()[0][1] + ")";
+            });
+
+            message.find(".char").each(function () {
+                var c = $(this);
+                var cx = parseFloat(c.attr("dx"));
+                var cy = parseFloat(c.attr("dy"));
+                c.attr("transform", "translate(" + cx + "," + cy + ")");
+            });
+        }
+
+        // function that snap to grid the drawn area
+        function brushing() {
+            var message = $(".message");
+
+            message.attr("transform", function () {
+                return "translate(" + brush.extent()[0][0] + "," + brush.extent()[0][1] + ")";
+            });
+
+            message.find(".char").each(function () {
+                var c = $(this);
+                var cx = parseFloat(c.attr("dx"));
+                var cy = parseFloat(c.attr("dy"));
+                c.attr("transform", "translate(" + cx + "," + cy + ")");
+            });
+        }
+
+        if (self.displayArea.select(".selectedWindow").empty()) {
+        } else {
             // remove the listener for deselection
             disableDeselectAll();
             self.cursorOff();
@@ -153,74 +225,6 @@ LedMatrix = function (elemid, options) {
                 });
 
 
-            // function that snap to grid the drawn area
-            function brushed() {
-                // copy the data contained in the old window
-                var data = [self.displayArea.select("rect.extent").datum()];
-
-                // snap to grid math
-                var extent = brush.extent();
-                var p1 = self.options.totPixelSize;
-                var p8 = self.options.totPixelSize * 8;
-                extent[0][0] = p1 * Math.round(extent[0][0] / p1) + self.options.offsetSize;
-                extent[0][1] = p8 * Math.round(extent[0][1] / p8) + self.options.offsetSize;
-                extent[1][0] = Math.max(p1 * Math.round(extent[1][0] / p1), extent[0][0] + p1 - self.options.offsetSize);
-                extent[1][1] = Math.max(p8 * Math.round(extent[1][1] / p8), extent[0][1] + p8 - self.options.offsetSize);
-
-                if (extent[1][0] >= self.size.width) {
-                    extent[0][0] -= p1;
-                    extent[1][0] -= p1;
-                }
-                if (extent[1][1] >= self.size.height) {
-                    extent[0][1] -= p8;
-                    extent[1][1] -= p8;
-                }
-
-                // apply snap
-                d3.select(this).transition()
-                    .each("end", function () {
-                        if (stop) {
-                            self.stopEditWindow();
-                        }
-                    })
-                    .call(brush.extent(extent));
-
-
-                // append the data in the new window
-                self.displayArea.select("rect.extent")
-                    .data(data)
-                    .enter()
-                    .append("rect");
-
-                var message = $(".message");
-
-                message.attr("transform", function () {
-                    return "translate(" + brush.extent()[0][0] + "," + brush.extent()[0][1] + ")";
-                });
-
-                message.find(".char").each(function () {
-                    var c = $(this);
-                    var cx = parseFloat(c.attr("dx"));
-                    var cy = parseFloat(c.attr("dy"));
-                    c.attr("transform", "translate(" + cx + "," + cy + ")");
-                });
-            }
-
-            // function that snap to grid the drawn area
-            function brushing() {
-                var message = $(".message");
-
-                message.attr("transform", function () {
-                    return "translate(" + brush.extent()[0][0]  + "," + brush.extent()[0][1] + ")";
-                });
-
-                message.find(".char").each(function () {
-                    var c = $(this);
-                    var cx = parseFloat(c.attr("dx"));
-                    var cy = parseFloat(c.attr("dy"));
-                    c.attr("transform", "translate(" + cx + "," + cy + ")");
-                });
-            }
         }
     };
 
@@ -338,6 +342,7 @@ LedMatrix = function (elemid, options) {
             }
 
             removeButtonsBar();
+            self.cursorOff();
 
         } else {
             alert("select a window!");
@@ -524,12 +529,8 @@ LedMatrix = function (elemid, options) {
                     adaptWindowPath();
                 }
 
-                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize / 2, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize / 2, h, self.options.offsetSize * 2, "cursor"));
+                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize / 2, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize / 2, h, self.options.offsetSize * 2, "cursor blink-cursor"));
 
-                if (self.cursorBlinkTimer === null) {
-                    // init the cursor blinking timer
-                    self.cursorBlinkTimer = setInterval(cursorBlink, 350);
-                }
             } else {
                 self.saveMessage();
                 console.info("select another font, this is big!");
@@ -559,12 +560,8 @@ LedMatrix = function (elemid, options) {
                     adaptWindowPath();
                 }
 
-                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize, h, self.options.offsetSize * 2, "cursor"));
+                $('.displayArea').append(self.Line(data.cursorCurrXPos - self.options.offsetSize, data.cursorCurrYPos, data.cursorCurrXPos - self.options.offsetSize, h, self.options.offsetSize * 2, "cursor blink-cursor"));
 
-                if (self.cursorBlinkTimer === null) {
-                    // init the cursor blinking timer
-                    self.cursorBlinkTimer = setInterval(cursorBlink, 500);
-                }
             } else {
                 self.saveMessage();
                 console.info("select another font, this is big!");
@@ -575,12 +572,7 @@ LedMatrix = function (elemid, options) {
     // turn off the cursor
     this.cursorOff = function () {
         // stop the cursor blinking timer
-        clearInterval(self.cursorBlinkTimer);
-        self.cursorBlinkTimer = null;
-
-        // remove the cursor
         $(".cursor").remove();
-        self.cursor = null;
     };
 
     // Chooses the actual font depending on the cursor position.
@@ -600,7 +592,7 @@ LedMatrix = function (elemid, options) {
         }
 
         var selection = $('.font-selection');
-        selection !== undefined ? selection.val(self.selectedFont.name) : null;
+        selection.length !== 0 ? selection.val(self.selectedFont.name) : null;
     };
 
     // Refreshing the cursor state:
@@ -780,12 +772,14 @@ LedMatrix = function (elemid, options) {
         .attr("x", this.options.border / 2)
         .attr("y", this.options.border / 2)
         .attr("class", "displayArea");
-    $(".displayArea").css('border', 'solid #333333 ' + this.options.border + 'px');
+
+    var disp = $(".displayArea");
+    disp.css('border', 'solid #333333 ' + this.options.border + 'px');
 
     var gGrid = this.SVG("g")
         .attr("class", "background-grid");
 
-    this.displayArea.grid = $(".displayArea").append(gGrid);
+    this.displayArea.grid = disp.append(gGrid);
 
     var rect = d3.select(".background-grid").append("rect")
         .attr("width", this.size.width)
@@ -802,10 +796,6 @@ LedMatrix = function (elemid, options) {
 
     // init displayArea structure
     this.displayArea.window = [];
-
-    // init cursor stuff
-    this.cursor = null;
-    this.cursorBlinkTimer = null;
 
     // init font
     this.fontManager = this.FontManager();
@@ -835,13 +825,16 @@ LedMatrix = function (elemid, options) {
             d3.event.stopPropagation();
 
             if (dClick) {
+                deselectAllWindows();
                 d3.select(this).classed('selectedWindow', true);
-                addMenuBar();
                 if (d3.select(this).classed("page")) {
                     self.insertPageMessage();
                 } else {
                     self.insertScrollMessage();
                 }
+                addMenuBar();
+                $('.cursor').appendTo($('.displayArea'));
+                $(".menu-group").fadeIn(300);
             } else {
                 if (d3.select(this).classed("selectedWindow")) {
                     d3.select(this).classed('selectedWindow', false);
@@ -1123,7 +1116,11 @@ LedMatrix = function (elemid, options) {
             xMenu += self.options.border * 5;
             yMenu -= hMenu - self.options.border * 2;
         }
+
         menuGroup.attr('style', 'position: absolute; top: ' + yMenu + 'px; left: ' + (xMenu + 200) + 'px;');
+
+        var duration = $('.page-duration');
+        duration.length !== 0 ? duration.html("Page duration: " + parseInt($('.menu-slider').attr('value')) + "s") : null;
 
         // move the selected window over
         g.appendTo(".displayArea");
@@ -1217,7 +1214,7 @@ LedMatrix = function (elemid, options) {
             var pageNumberOf = " " + (data.selectedPage + 1) + "/" + data.pages.length + " ";
             var numb = $(".page-number");
 
-            if (numb !== undefined) numb.html(pageNumberOf);
+            if (numb.length !== 0) numb.html(pageNumberOf);
         }
 
     }
@@ -1242,19 +1239,13 @@ LedMatrix = function (elemid, options) {
             .append(createSeparator());
 
         if (type === "page") {
-            ret.append(createTextContainer("Page duration:", null))
+            ret.append(createTextContainer("Page duration:", "page-duration"))
                 .append(createButtonContainer()
                     .append(createTextContainer("1s ", null))
                     .append(createSelector(1, 60, data.duration))
                     .append(createTextContainer(" 60s", null)))
-                .append(createSeparator())
-                .append(createTextContainer("Page control:", null))
-                .append(createButton('plus-circle', self.addPage))
-                .append(createButtonContainer()
-                    .append(createButton('chevron-circle-left', self.prevPage))
-                    .append(createTextContainer(pageNumberOf, "page-number"))
-                    .append(createButton('chevron-circle-right', self.nextPage)))
-                .append(createButton('minus-circle', self.removePage));
+                .append(createSeparator());
+
         } else {
             ret.append(createButtonContainer()
                 .append(createButton('fast-backward', self.speedDown))
@@ -1262,18 +1253,29 @@ LedMatrix = function (elemid, options) {
                 .append(createButton('fast-forward', self.speedUp)));
         }
 
-        ret.append(createSeparator())
-            .append(createTextContainer("Blink", null))
-            .append(createButtonContainer()
-                .append(createButtonBlink('bullseye', 'blink-fixed', self.selectedBlink))
-                .append(createButtonBlink('bullseye', 'blink-sim_slow', self.selectedBlink))
-                .append(createButtonBlink('bullseye', 'blink-sim_medium', self.selectedBlink))
-                .append(createButtonBlink('bullseye', 'blink-sim_fast', self.selectedBlink))
-                .append(createButtonBlink('bullseye', 'blink-sim_very_fast', self.selectedBlink)))
-            .append(createSeparator())
-            .append(createTextContainer("Font", null))
-            .append(createSelectMenuContainer()
-                .append(selectFontMenu));
+        if ($('.textEdit').length !== 0) {
+            if (type === 'page') {
+                ret.append(createTextContainer("Page control:", null))
+                    .append(createButton('plus-circle', self.addPage))
+                    .append(createButtonContainer()
+                        .append(createButton('chevron-circle-left', self.prevPage))
+                        .append(createTextContainer(pageNumberOf, "page-number"))
+                        .append(createButton('chevron-circle-right', self.nextPage)))
+                    .append(createButton('minus-circle', self.removePage));
+            }
+            ret.append(createSeparator())
+                .append(createTextContainer("Blink", null))
+                .append(createButtonContainer()
+                    .append(createButtonBlink('bullseye', 'blink-fixed', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_slow', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_medium', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_fast', self.selectedBlink))
+                    .append(createButtonBlink('bullseye', 'blink-sim_very_fast', self.selectedBlink)))
+                .append(createSeparator())
+                .append(createTextContainer("Font", null))
+                .append(createSelectMenuContainer()
+                    .append(selectFontMenu));
+        }
 
         return ret;
     }
@@ -1306,19 +1308,23 @@ LedMatrix = function (elemid, options) {
             .attr('value', value)
             .attr('min', min)
             .attr('max', max)
+            .on('input', function () {
+                $('.page-duration').html("Page duration: " + parseInt(this.value) + "s");
+            })
             .on('change', function () {
                 self.pageDuration(parseInt(this.value));
-            })
+                this.blur();
+            });
     }
 
     function createButtonContainer() {
         return $('<div>')
-            .attr('class', 'buttons-container')
+            .attr('class', 'buttons-container');
     }
 
     function createSeparator() {
         return $('<div>')
-            .attr('class', 'buttons-separator')
+            .attr('class', 'buttons-separator');
     }
 
     function createTextContainer(text, klass) {
@@ -1334,10 +1340,10 @@ LedMatrix = function (elemid, options) {
 
     function createSelectMenu(klass) {
         return $('<select>')
-            .attr('class', 'select-menu font ' + (klass !== null ? klass : ''))
+            .attr('class', 'select-menu font no_selection ' + (klass !== null ? klass : ''))
             .on('change', function () {
                 self.selectFont(this.value);
-                $(".textEdit").focus();
+                this.blur();
             });
     }
 
@@ -2385,8 +2391,7 @@ LedMatrix = function (elemid, options) {
         });
     }
 
-}
-;
+};
 
 // ------------- Data type -------------
 // An SVG element:
